@@ -32,9 +32,9 @@ Proje Next.js standalone çıktısı kullanır. Dockerfile gerekli statik dosyal
 
 ## Coolify ile Dağıtım
 
-1. Git deposunu Coolify'de Docker Compose kaynağı olarak ekleyin ve depo kökündeki `docker-compose.yml` dosyasını seçin.
+1. Git deposunu Coolify'de Docker Compose kaynağı olarak ekleyin ve depo kökündeki `docker-compose.yaml` dosyasını seçin.
 2. Coolify ortam değişkenlerine `ADMIN_PASSWORD` ekleyin ve değerini secret olarak saklayın. Parolayı repoya eklemeyin. İletişim formu bildirimi gerekiyorsa `CONTACT_WEBHOOK_URL` değerini de tanımlayın.
-3. Coolify domain ayarına sitenin adresini ekleyin ve uygulama portunu `3000` olarak seçin. Farklı bir domain kullanıyorsanız `docker-compose.yml` içindeki `NEXT_PUBLIC_SITE_URL` değerini de güncelleyin.
+3. Coolify domain ayarına sitenin adresini ekleyin ve uygulama portunu `3000` olarak seçin. Farklı bir domain kullanıyorsanız `docker-compose.yaml` içindeki `NEXT_PUBLIC_SITE_URL` değerini de güncelleyin.
 4. Compose dosyası mevcut `coolify` adlı Docker ağını bekler. Sunucuda bu ağın bulunduğunu doğrulayın; yoksa dosyadaki dış ağ adını Coolify proxy ağınızla eşleştirin.
 5. Deploy edin. SQLite verisi `fmkal-data` adlı kalıcı Docker volume'unda `/app/data/fmkal.db` yolunda tutulur. Volume'u silmek veritabanını siler; düzenli yedek alın.
 

@@ -43,7 +43,7 @@ Bu proje, **Furkan Mert Kalyon (FMKAL)** için özel olarak tasarlanmış, **Nex
    ```
 2. **Coolify Panelinize** gidin.
 3. **Projects -> New Resource -> Public/Private Repository** seçin.
-4. `fmkal` reponuzu bağlayın ve Compose dosyasını (`docker-compose.yml`) kullanın.
+4. `fmkal` reponuzu bağlayın ve Compose dosyasını (`docker-compose.yaml`) kullanın.
 5. Coolify ortam değişkenlerine güçlü ve benzersiz bir `ADMIN_PASSWORD` girin. İsteğe bağlı olarak `CONTACT_WEBHOOK_URL` ekleyin.
 6. Coolify domain ayarına `https://fmkal.com` girin ve uygulama portunu `3000` seçin.
 7. Compose yapılandırması `coolify` adlı mevcut Docker ağını bekler. Ağ yoksa bu ağı oluşturun veya Compose dosyasındaki dış ağ adını Coolify proxy ağınızla eşleştirin.

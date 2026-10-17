@@ -1,0 +1,8 @@
+.git
+.next
+node_modules
+npm-debug.log*
+*.local
+data/*.db
+data/*.db-shm
+data/*.db-wal

@@ -1,0 +1,233 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --border-subtle: #e2e8f0;
+    --accent-blue: #2563eb;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    color-scheme: light;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  body {
+    overflow-x: hidden;
+    min-height: 100vh;
+    background-color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  ::selection {
+    background-color: #0f172a;
+    color: #ffffff;
+  }
+
+  /* Refined light scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+/* Apple & Stripe Studio Styling */
+.studio-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.studio-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 20px 40px -4px rgba(15, 23, 42, 0.09), 0 8px 20px -2px rgba(15, 23, 42, 0.04);
+}
+
+.studio-nav {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);
+}
+
+.studio-btn-primary {
+  background: #0f172a;
+  color: #ffffff;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.studio-btn-primary:hover {
+  background: #1e293b;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -4px rgba(15, 23, 42, 0.25);
+}
+
+.studio-btn-secondary {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.studio-btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -3px rgba(15, 23, 42, 0.06);
+}
+
+/* Atmospheric Aura Glows */
+.aura-glow-blue {
+  background: radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.12) 0%, rgba(59, 130, 246, 0.05) 45%, transparent 70%);
+}
+
+.aura-glow-purple {
+  background: radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.1) 0%, rgba(139, 92, 246, 0.04) 45%, transparent 70%);
+}
+
+.aura-glow-emerald {
+  background: radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.1) 0%, rgba(52, 211, 153, 0.04) 45%, transparent 70%);
+}
+
+/* Subtle blueprint dot matrix background */
+.bg-studio-dots {
+  background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+}
+
+/* Shimmering Text Animation */
+@keyframes textShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-shimmer-text {
+  background: linear-gradient(90deg, #2563eb 0%, #7c3aed 25%, #0284c7 50%, #2563eb 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmer 4s ease infinite;
+}
+
+/* Infinite Marquee */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 28s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Floating animation */
+@keyframes floating {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float-slow {
+  animation: floating 4s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: floating 5s ease-in-out 1.5s infinite;
+}
+
+/* Animated audio waveform */
+@keyframes waveBar {
+  0%, 100% {
+    height: 6px;
+  }
+  50% {
+    height: 24px;
+  }
+}
+
+.animate-wave-1 { animation: waveBar 1.2s ease-in-out infinite; }
+.animate-wave-2 { animation: waveBar 1.2s ease-in-out 0.2s infinite; }
+.animate-wave-3 { animation: waveBar 1.2s ease-in-out 0.4s infinite; }
+.animate-wave-4 { animation: waveBar 1.2s ease-in-out 0.6s infinite; }
+.animate-wave-5 { animation: waveBar 1.2s ease-in-out 0.3s infinite; }
+.animate-wave-6 { animation: waveBar 1.2s ease-in-out 0.5s infinite; }
+.animate-wave-7 { animation: waveBar 1.2s ease-in-out 0.1s infinite; }
+.animate-wave-8 { animation: waveBar 1.2s ease-in-out 0.7s infinite; }
+
+/* Hardware-accelerated mobile & desktop visual animations */
+@keyframes scanSlide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+.animate-scan-slide {
+  animation: scanSlide 2.2s linear infinite;
+}
+
+@keyframes packetTravel {
+  0%, 100% {
+    left: 10%;
+  }
+  50% {
+    left: 85%;
+  }
+}
+
+.animate-packet-travel {
+  animation: packetTravel 2.6s ease-in-out infinite;
+}
+
+@keyframes softPulseScale {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.animate-soft-pulse {
+  animation: softPulseScale 2.2s ease-in-out infinite;
+}
+

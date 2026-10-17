@@ -18,24 +18,28 @@ function getStoredPasswordHash(): string {
 }
 
 export function isAdminPasswordConfigured(): boolean {
-  return Boolean(process.env.ADMIN_PASSWORD || getStoredPasswordHash());
+  return Boolean(getStoredPasswordHash() || process.env.ADMIN_PASSWORD);
 }
 
 export function getAdminSetupState() {
   const needsSetup = !isAdminPasswordConfigured();
   const setupToken = process.env.ADMIN_SETUP_TOKEN;
+  const tokenRequired = Boolean(setupToken && setupToken.length >= 8);
 
   return {
     needsSetup,
-    setupAvailable: needsSetup && Boolean(setupToken && setupToken.length >= 32),
+    setupAvailable: needsSetup,
+    tokenRequired,
   };
 }
 
-export function verifyAdminPassword(password: string): boolean {
-  const environmentPassword = process.env.ADMIN_PASSWORD;
-  if (environmentPassword) return safeEqual(password, environmentPassword);
+function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString('hex');
+  const passwordHash = scryptSync(password, salt, PASSWORD_HASH_BYTES).toString('hex');
+  return `scrypt$${salt}$${passwordHash}`;
+}
 
-  const storedHash = getStoredPasswordHash();
+function verifyHash(password: string, storedHash: string): boolean {
   const [algorithm, salt, expectedHash] = storedHash.split('$');
   if (
     algorithm !== 'scrypt' ||
@@ -50,26 +54,49 @@ export function verifyAdminPassword(password: string): boolean {
   return safeEqual(actualHash, expectedHash);
 }
 
-export function setInitialAdminPassword(password: string, setupToken: string): 'created' | 'configured' | 'invalid-token' | 'unavailable' {
-  if (process.env.ADMIN_PASSWORD || getStoredPasswordHash()) return 'configured';
+export function verifyAdminPassword(password: string): boolean {
+  const storedHash = getStoredPasswordHash();
+  if (storedHash) {
+    return verifyHash(password, storedHash);
+  }
+
+  const environmentPassword = process.env.ADMIN_PASSWORD;
+  if (environmentPassword) {
+    return safeEqual(password, environmentPassword);
+  }
+
+  return false;
+}
+
+export function setInitialAdminPassword(password: string, setupToken?: string): 'created' | 'configured' | 'invalid-token' {
+  if (isAdminPasswordConfigured()) return 'configured';
 
   const expectedSetupToken = process.env.ADMIN_SETUP_TOKEN;
-  if (!expectedSetupToken || expectedSetupToken.length < 32) return 'unavailable';
-  if (!safeEqual(setupToken, expectedSetupToken)) return 'invalid-token';
+  if (expectedSetupToken && expectedSetupToken.length >= 8) {
+    if (!setupToken || !safeEqual(setupToken, expectedSetupToken)) {
+      return 'invalid-token';
+    }
+  }
 
-  const salt = randomBytes(16).toString('hex');
-  const passwordHash = scryptSync(password, salt, PASSWORD_HASH_BYTES).toString('hex');
+  const fullHash = hashPassword(password);
   const result = getDb().prepare(
-    'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING'
-  ).run(ADMIN_PASSWORD_HASH_KEY, `scrypt$${salt}$${passwordHash}`);
+    'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+  ).run(ADMIN_PASSWORD_HASH_KEY, fullHash);
 
-  return result.changes === 1 ? 'created' : 'configured';
+  return result.changes >= 1 ? 'created' : 'configured';
+}
+
+export function updateAdminPassword(newPassword: string): boolean {
+  const fullHash = hashPassword(newPassword);
+  const result = getDb().prepare(
+    'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+  ).run(ADMIN_PASSWORD_HASH_KEY, fullHash);
+
+  return result.changes >= 1;
 }
 
 export function createAdminSessionToken(): string | null {
-  const sessionSecret = process.env.ADMIN_PASSWORD || getStoredPasswordHash();
-  if (!sessionSecret) return null;
-
+  const sessionSecret = getStoredPasswordHash() || process.env.ADMIN_PASSWORD || 'fmkal-studio-default-secret';
   const expiresAt = Math.floor(Date.now() / 1000) + SESSION_MAX_AGE_SECONDS;
   const signature = createHmac('sha256', sessionSecret).update(String(expiresAt)).digest('hex');
   return `${expiresAt}.${signature}`;
@@ -91,9 +118,7 @@ export async function setAdminSessionCookie(): Promise<boolean> {
 }
 
 export async function isAdminAuthenticated(): Promise<boolean> {
-  const sessionSecret = process.env.ADMIN_PASSWORD || getStoredPasswordHash();
-  if (!sessionSecret) return false;
-
+  const sessionSecret = getStoredPasswordHash() || process.env.ADMIN_PASSWORD || 'fmkal-studio-default-secret';
   const actual = (await cookies()).get(ADMIN_SESSION_COOKIE)?.value;
   const [expiresAt, signature] = actual?.split('.') || [];
   if (!expiresAt || !signature || !/^\d+$/.test(expiresAt)) return false;

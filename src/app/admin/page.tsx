@@ -33,11 +33,20 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [setupAvailable, setSetupAvailable] = useState(false);
+  const [tokenRequired, setTokenRequired] = useState(false);
   const [setupToken, setSetupToken] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
 
   // Dashboard Data State
   const [activeTab, setActiveTab] = useState<'projects' | 'messages' | 'settings'>('projects');
@@ -96,8 +105,9 @@ export default function AdminPage() {
       .then((res) => res.json())
       .then((data) => {
         setIsAuthenticated(data.authenticated);
-        setNeedsSetup(data.needsSetup);
-        setSetupAvailable(data.setupAvailable);
+        setNeedsSetup(Boolean(data.needsSetup));
+        setSetupAvailable(Boolean(data.setupAvailable));
+        setTokenRequired(Boolean(data.tokenRequired));
         if (data.authenticated) {
           loadData();
         }
@@ -155,8 +165,8 @@ export default function AdminPage() {
     setLoading(true);
     setLoginError('');
 
-    if (password.length < 10) {
-      setLoginError('Parola en az 10 karakter olmalıdır.');
+    if (password.length < 6) {
+      setLoginError('Parola en az 6 karakter olmalıdır.');
       setLoading(false);
       return;
     }
@@ -170,12 +180,13 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ setupToken, password }),
+        body: JSON.stringify({ setupToken: setupToken || undefined, password }),
       });
       const data = await res.json();
 
       if (res.ok) {
         setIsAuthenticated(true);
+        setNeedsSetup(false);
         setSetupToken('');
         setPassword('');
         setConfirmPassword('');
@@ -187,6 +198,47 @@ export default function AdminPage() {
       setLoginError('Bağlantı hatası oluştu.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess(false);
+
+    if (newPassword.length < 6) {
+      setPasswordError('Yeni şifre en az 6 karakter olmalıdır.');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError('Yeni şifreler birbiriyle eşleşmiyor.');
+      return;
+    }
+
+    setSavingPassword(true);
+
+    try {
+      const res = await fetch('/api/admin/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setPasswordSuccess(true);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setTimeout(() => setPasswordSuccess(false), 4000);
+      } else {
+        setPasswordError(data.error || 'Şifre güncellenemedi.');
+      }
+    } catch (err) {
+      setPasswordError('Bağlantı hatası oluştu.');
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -390,96 +442,92 @@ export default function AdminPage() {
               <Lock className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-2xl font-extrabold text-slate-950">
-              {needsSetup ? 'İlk Yönetici Kurulumu' : 'FMKAL Stüdyo Paneli'}
+              {needsSetup ? 'Yönetici Şifresi Belirleme' : 'FMKAL Stüdyo Paneli'}
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              {needsSetup ? 'Kurulum anahtarıyla admin parolanı belirle' : 'İçerik ve Proje Yönetim Sistemi (SQLite)'}
+              {needsSetup
+                ? 'Stüdyo paneline ilk kez giriş yapılıyor. Lütfen bir yönetici şifresi belirleyin.'
+                : 'İçerik ve Proje Yönetim Sistemi (SQLite)'}
             </p>
           </div>
 
           {/* Form */}
-          {needsSetup && !setupAvailable ? (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>İlk kurulum için Coolify ortam değişkenlerinde en az 32 karakterlik ADMIN_SETUP_TOKEN tanımlanmalı.</span>
-            </div>
-          ) : (
-            <form onSubmit={needsSetup ? handleSetup : handleLogin} className="space-y-4">
-              {needsSetup && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    Tek Kullanımlık Kurulum Anahtarı
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={setupToken}
-                    onChange={(e) => setSetupToken(e.target.value)}
-                    autoComplete="off"
-                    placeholder="Coolify'de tanımladığınız anahtar"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm transition-all"
-                  />
-                </div>
-              )}
-
+          <form onSubmit={needsSetup ? handleSetup : handleLogin} className="space-y-4">
+            {needsSetup && tokenRequired && (
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  {needsSetup ? 'Yeni Yönetici Parolası' : 'Yönetici Şifresi'}
+                  Kurulum Anahtarı (ADMIN_SETUP_TOKEN)
                 </label>
                 <input
                   type="password"
                   required
-                  minLength={needsSetup ? 10 : undefined}
-                  maxLength={128}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete={needsSetup ? 'new-password' : 'current-password'}
-                  placeholder={needsSetup ? 'En az 10 karakter' : 'Şifrenizi girin...'}
+                  value={setupToken}
+                  onChange={(e) => setSetupToken(e.target.value)}
+                  autoComplete="off"
+                  placeholder="Sunucu kurulum anahtarını girin"
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm transition-all"
                 />
               </div>
+            )}
 
-              {needsSetup && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    Yönetici Parolası (Tekrar)
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    maxLength={128}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    autoComplete="new-password"
-                    placeholder="Yeni parolayı tekrar girin"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm transition-all"
-                  />
-                </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                {needsSetup ? 'Yeni Yönetici Şifresi' : 'Yönetici Şifresi'}
+              </label>
+              <input
+                type="password"
+                required
+                minLength={needsSetup ? 6 : undefined}
+                maxLength={128}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={needsSetup ? 'new-password' : 'current-password'}
+                placeholder={needsSetup ? 'En az 6 karakter' : 'Şifrenizi girin...'}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm transition-all"
+              />
+            </div>
+
+            {needsSetup && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Yönetici Şifresi (Tekrar)
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  maxLength={128}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                  placeholder="Yeni şifreyi tekrar girin"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm transition-all"
+                />
+              </div>
+            )}
+
+            {loginError && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-semibold text-xs tracking-wide transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span>{needsSetup ? 'Şifreyi Belirle ve Giriş Yap' : 'Panele Giriş Yap'}</span>
+                  <ArrowUpRight className="w-4 h-4" />
+                </>
               )}
-
-              {loginError && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{loginError}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-semibold text-xs tracking-wide transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {loading ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <span>{needsSetup ? 'Parolayı Belirle ve Giriş Yap' : 'Panele Giriş Yap'}</span>
-                    <ArrowUpRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
-          )}
+            </button>
+          </form>
 
         </motion.div>
       </div>
@@ -973,6 +1021,104 @@ export default function AdminPage() {
                 </div>
               </form>
 
+            </div>
+
+            {/* PASSWORD CHANGE SECTION */}
+            <div className="studio-card rounded-3xl p-6 sm:p-8 bg-white border border-slate-200/90 shadow-sm mt-8">
+              <div className="flex items-center gap-3 pb-6 border-b border-slate-100">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800">
+                  <Lock className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-950">
+                    Yönetici Şifresini Değiştir
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Panele giriş yaparken kullanılan şifreyi buradan istediğiniz zaman doğrudan güncelleyebilirsiniz.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleChangePassword} className="pt-6 space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Mevcut Şifre
+                    </label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Mevcut şifreniz"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs font-mono text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Yeni Şifre
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="En az 6 karakter"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs font-mono text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Yeni Şifre (Tekrar)
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      placeholder="Yeni şifreyi tekrar girin"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs font-mono text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                {passwordSuccess && (
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Yönetici şifreniz başarıyla güncellendi!</span>
+                  </div>
+                )}
+
+                {passwordError && (
+                  <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{passwordError}</span>
+                  </div>
+                )}
+
+                <div className="pt-3 border-t border-slate-100 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={savingPassword}
+                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {savingPassword ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Güncelleniyor...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Şifreyi Güncelle</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

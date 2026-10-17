@@ -4,20 +4,14 @@ import { setAdminSessionCookie, setInitialAdminPassword } from '@/lib/admin-auth
 export async function POST(request: Request) {
   try {
     const { setupToken, password } = await request.json();
-    if (typeof password !== 'string' || password.length < 10 || password.length > 128) {
+    if (typeof password !== 'string' || password.length < 6 || password.length > 128) {
       return NextResponse.json(
-        { error: 'Parola en az 10, en fazla 128 karakter olmalıdır.' },
+        { error: 'Parola en az 6, en fazla 128 karakter olmalıdır.' },
         { status: 400 }
       );
     }
-    if (typeof setupToken !== 'string') {
-      return NextResponse.json({ error: 'Kurulum anahtarı geçersiz.' }, { status: 400 });
-    }
 
-    const result = setInitialAdminPassword(password, setupToken);
-    if (result === 'unavailable') {
-      return NextResponse.json({ error: 'Kurulum anahtarı sunucuda ayarlanmamış.' }, { status: 503 });
-    }
+    const result = setInitialAdminPassword(password, typeof setupToken === 'string' ? setupToken : undefined);
     if (result === 'invalid-token') {
       return NextResponse.json({ error: 'Kurulum anahtarı hatalı.' }, { status: 403 });
     }
@@ -28,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Oturum oluşturulamadı. Lütfen giriş yapın.' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, message: 'Admin parolası oluşturuldu.' });
+    return NextResponse.json({ success: true, message: 'Admin parolası başarıyla oluşturuldu.' });
   } catch (error) {
     console.error('Admin setup failed:', error);
     return NextResponse.json({ error: 'Kurulum tamamlanamadı.' }, { status: 500 });

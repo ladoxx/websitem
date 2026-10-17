@@ -44,7 +44,7 @@ Bu proje, **Furkan Mert Kalyon (FMKAL)** için özel olarak tasarlanmış, **Nex
 2. **Coolify Panelinize** gidin.
 3. **Projects -> New Resource -> Public/Private Repository** seçin.
 4. `fmkal` reponuzu bağlayın ve Compose dosyasını (`docker-compose.yaml`) kullanın.
-5. Coolify ortam değişkenlerine güçlü ve benzersiz bir `ADMIN_PASSWORD` girin. İsteğe bağlı olarak `CONTACT_WEBHOOK_URL` ekleyin.
+5. Coolify ortam değişkenlerinde `ADMIN_PASSWORD` değerini boş bırakın veya kaldırın. En az 32 karakterlik rastgele `ADMIN_SETUP_TOKEN` değerini secret olarak ekleyin. İsteğe bağlı olarak `CONTACT_WEBHOOK_URL` ekleyin.
 6. Coolify domain ayarına `https://fmkal.com` girin ve uygulama portunu `3000` seçin.
 7. Compose yapılandırması `coolify` adlı mevcut Docker ağını bekler. Ağ yoksa bu ağı oluşturun veya Compose dosyasındaki dış ağ adını Coolify proxy ağınızla eşleştirin.
 8. Deploy edin. SQLite verisi `fmkal-data` adlı kalıcı Docker volume'unda saklanır; volume'u silmek veritabanını siler. Düzenli yedek alın.
@@ -77,11 +77,12 @@ Eğer Cloudflare Zero Trust (Tunnels) kullanıyorsanız:
 | `NODE_ENV` | Çalışma Modu | `production` |
 | `NEXT_PUBLIC_SITE_URL` | Sitenin tam adresi | `https://fmkal.com` |
 | `CONTACT_EMAIL` | Taleplerin düşeceği e-posta | `iletisim@fmkal.com` |
-| `ADMIN_PASSWORD` | Yönetim paneline giriş parolası (**zorunlu, güçlü ve benzersiz**) | Coolify secret olarak tanımlayın |
+| `ADMIN_PASSWORD` | İsteğe bağlı önceden belirlenmiş admin parolası; webden ilk kurulum için boş bırakın | Varsayılan olarak boş |
+| `ADMIN_SETUP_TOKEN` | Web üzerinden ilk admin parolasını belirlemek için tek kullanımlık kurulum anahtarı | En az 32 rastgele karakter, Coolify secret |
 | `SQLITE_DB_PATH` | SQLite dosyasının yolu | `/app/data/fmkal.db` |
 | `CONTACT_WEBHOOK_URL` | *(Opsiyonel)* Discord / Telegram / n8n Bildirim Webhook'u | `https://discord.com/api/webhooks/...` |
 
-`ADMIN_PASSWORD` değerini Coolify secret olarak tanımlayın; repoya veya imaja yazmayın. Compose yapılandırması bu değer yoksa deploy'u durdurur. Yönetici oturum çerezleri bu parola ile imzalanır; parola değiştirilince mevcut oturumlar geçersiz olur.
+İlk deploy öncesinde `ADMIN_PASSWORD` boş olmalı ve `ADMIN_SETUP_TOKEN` Coolify secret olarak tanımlanmalıdır. `/admin` sayfasında bu token ile yeni admin parolasını bir kez belirleyin. Parola scrypt hash'i olarak SQLite volume'unda saklanır. Kurulumdan sonra `ADMIN_SETUP_TOKEN` değerini Coolify'den kaldırıp yeniden deploy edin. Parolayı veya token'ı repoya ya da Docker imajına koymayın. Mevcut oturum çerezleri 7 gün sonra sona erer.
 
 ---
 

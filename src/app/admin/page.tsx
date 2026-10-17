@@ -31,7 +31,11 @@ import { ShowcaseProject, ShowcaseType } from '@/data/showcaseWebsites';
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const [setupAvailable, setSetupAvailable] = useState(false);
+  const [setupToken, setSetupToken] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -92,6 +96,8 @@ export default function AdminPage() {
       .then((res) => res.json())
       .then((data) => {
         setIsAuthenticated(data.authenticated);
+        setNeedsSetup(data.needsSetup);
+        setSetupAvailable(data.setupAvailable);
         if (data.authenticated) {
           loadData();
         }
@@ -136,6 +142,46 @@ export default function AdminPage() {
         loadData();
       } else {
         setLoginError(data.error || 'Şifre hatalı.');
+      }
+    } catch (err) {
+      setLoginError('Bağlantı hatası oluştu.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setLoginError('');
+
+    if (password.length < 10) {
+      setLoginError('Parola en az 10 karakter olmalıdır.');
+      setLoading(false);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setLoginError('Parolalar eşleşmiyor.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setupToken, password }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        setIsAuthenticated(true);
+        setSetupToken('');
+        setPassword('');
+        setConfirmPassword('');
+        loadData();
+      } else {
+        setLoginError(data.error || 'Admin kurulumu tamamlanamadı.');
       }
     } catch (err) {
       setLoginError('Bağlantı hatası oluştu.');
@@ -343,48 +389,97 @@ export default function AdminPage() {
             <div className="w-12 h-12 rounded-2xl bg-slate-950 flex items-center justify-center mx-auto mb-4 shadow-sm">
               <Lock className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-950">FMKAL Stüdyo Paneli</h1>
-            <p className="text-xs text-slate-500 mt-1">İçerik ve Proje Yönetim Sistemi (SQLite)</p>
+            <h1 className="text-2xl font-extrabold text-slate-950">
+              {needsSetup ? 'İlk Yönetici Kurulumu' : 'FMKAL Stüdyo Paneli'}
+            </h1>
+            <p className="text-xs text-slate-500 mt-1">
+              {needsSetup ? 'Kurulum anahtarıyla admin parolanı belirle' : 'İçerik ve Proje Yönetim Sistemi (SQLite)'}
+            </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Yönetici Şifresi
-              </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Şifrenizi girin..."
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm transition-all"
-              />
+          {needsSetup && !setupAvailable ? (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>İlk kurulum için Coolify ortam değişkenlerinde en az 32 karakterlik ADMIN_SETUP_TOKEN tanımlanmalı.</span>
             </div>
-
-            {loginError && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{loginError}</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-semibold text-xs tracking-wide transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              {loading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>Panele Giriş Yap</span>
-                  <ArrowUpRight className="w-4 h-4" />
-                </>
+          ) : (
+            <form onSubmit={needsSetup ? handleSetup : handleLogin} className="space-y-4">
+              {needsSetup && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Tek Kullanımlık Kurulum Anahtarı
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={setupToken}
+                    onChange={(e) => setSetupToken(e.target.value)}
+                    autoComplete="off"
+                    placeholder="Coolify'de tanımladığınız anahtar"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm transition-all"
+                  />
+                </div>
               )}
-            </button>
-          </form>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  {needsSetup ? 'Yeni Yönetici Parolası' : 'Yönetici Şifresi'}
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={needsSetup ? 10 : undefined}
+                  maxLength={128}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={needsSetup ? 'new-password' : 'current-password'}
+                  placeholder={needsSetup ? 'En az 10 karakter' : 'Şifrenizi girin...'}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm transition-all"
+                />
+              </div>
+
+              {needsSetup && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Yönetici Parolası (Tekrar)
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    maxLength={128}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    placeholder="Yeni parolayı tekrar girin"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm transition-all"
+                  />
+                </div>
+              )}
+
+              {loginError && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{loginError}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-semibold text-xs tracking-wide transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span>{needsSetup ? 'Parolayı Belirle ve Giriş Yap' : 'Panele Giriş Yap'}</span>
+                    <ArrowUpRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
 
         </motion.div>
       </div>

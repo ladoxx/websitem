@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
-import { isAdminAuthenticated } from '@/lib/admin-auth';
+import { getAdminSetupState, isAdminAuthenticated } from '@/lib/admin-auth';
 
 export async function GET() {
   const isAuthenticated = await isAdminAuthenticated();
-  return NextResponse.json({ authenticated: isAuthenticated });
+  return NextResponse.json({ authenticated: isAuthenticated, ...getAdminSetupState() }, {
+    headers: { 'Cache-Control': 'no-store' },
+  });
 }

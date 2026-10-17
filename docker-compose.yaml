@@ -12,7 +12,8 @@ services:
       NEXT_PUBLIC_SITE_URL: https://fmkal.com
       CONTACT_EMAIL: iletisim@fmkal.com
       CONTACT_WEBHOOK_URL: ${CONTACT_WEBHOOK_URL:-}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in Coolify}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_SETUP_TOKEN: ${ADMIN_SETUP_TOKEN:-}
       SQLITE_DB_PATH: /app/data/fmkal.db
     volumes:
       - fmkal-data:/app/data

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { saveContactMessage, getSetting } from '@/lib/db';
+import { saveContactMessage } from '@/lib/db';
+import { sendContactNotification } from '@/lib/email';
 
 export async function POST(request: Request) {
   try {
@@ -29,19 +30,27 @@ export async function POST(request: Request) {
       console.error('Failed to save message to SQLite:', dbErr);
     }
 
-    // In a configured environment (Coolify/Docker), check for webhook or smtp
-    const webhookUrl = process.env.CONTACT_WEBHOOK_URL;
-    const recipientEmail = process.env.CONTACT_EMAIL || getSetting('contact_email', 'iletisim@fmkal.com');
+    // Send SMTP Email Notification to Admin
+    try {
+      await sendContactNotification({ name, email, service, message });
+    } catch (smtpErr) {
+      console.error('[Contact Form] SMTP e-posta bildirimi gönderilemedi:', smtpErr);
+    }
 
+    // Optional Webhook forwarding (Discord / Telegram / n8n)
+    const webhookUrl = process.env.CONTACT_WEBHOOK_URL;
     if (webhookUrl) {
-      // Forward to Discord / Telegram / n8n webhook
-      await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: `📬 Yeni Proje Talebi (fmkal.com)\n**İsim:** ${name}\n**E-Posta:** ${email}\n**Hizmet:** ${service || 'Belirtilmedi'}\n**Mesaj:** ${message}`,
-        }),
-      });
+      try {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: `📬 Yeni Proje Talebi (fmkal.com)\n**İsim:** ${name}\n**E-Posta:** ${email}\n**Hizmet:** ${service || 'Belirtilmedi'}\n**Mesaj:** ${message}`,
+          }),
+        });
+      } catch (webhookErr) {
+        console.error('[Contact Form] Webhook gönderilemedi:', webhookErr);
+      }
     }
 
     // Log internally

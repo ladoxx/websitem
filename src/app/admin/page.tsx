@@ -26,6 +26,7 @@ import {
   Check,
   AlertCircle,
   Settings,
+  Send,
 } from 'lucide-react';
 import { ShowcaseProject, ShowcaseType } from '@/data/showcaseWebsites';
 
@@ -58,6 +59,21 @@ export default function AdminPage() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [settingsError, setSettingsError] = useState('');
+
+  // SMTP Configuration State
+  const [smtpHost, setSmtpHost] = useState('');
+  const [smtpPort, setSmtpPort] = useState('465');
+  const [smtpUser, setSmtpUser] = useState('');
+  const [smtpPass, setSmtpPass] = useState('');
+  const [smtpSecure, setSmtpSecure] = useState(true);
+  const [smtpFrom, setSmtpFrom] = useState('');
+  const [smtpTo, setSmtpTo] = useState('');
+  const [hasSmtpPass, setHasSmtpPass] = useState(false);
+  const [testingSmtp, setTestingSmtp] = useState(false);
+  const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [smtpSuccess, setSmtpSuccess] = useState(false);
+  const [smtpError, setSmtpError] = useState('');
+  const [savingSmtp, setSavingSmtp] = useState(false);
   const [stats, setStats] = useState({
     totalProjects: 0,
     totalVideos: 0,
@@ -129,6 +145,13 @@ export default function AdminPage() {
       if (settingsRes.contactEmail) setContactEmail(settingsRes.contactEmail);
       if (typeof settingsRes.googleVerification === 'string') setGoogleVerification(settingsRes.googleVerification);
       if (typeof settingsRes.naverVerification === 'string') setNaverVerification(settingsRes.naverVerification);
+      if (settingsRes.smtpHost) setSmtpHost(settingsRes.smtpHost);
+      if (settingsRes.smtpPort) setSmtpPort(String(settingsRes.smtpPort));
+      if (settingsRes.smtpUser) setSmtpUser(settingsRes.smtpUser);
+      if (settingsRes.smtpSecure !== undefined) setSmtpSecure(settingsRes.smtpSecure);
+      if (settingsRes.smtpFrom) setSmtpFrom(settingsRes.smtpFrom);
+      if (settingsRes.smtpTo) setSmtpTo(settingsRes.smtpTo);
+      if (settingsRes.hasSmtpPass) setHasSmtpPass(settingsRes.hasSmtpPass);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
     }
@@ -399,11 +422,22 @@ export default function AdminPage() {
           contactEmail,
           googleVerification,
           naverVerification,
+          smtpHost,
+          smtpPort,
+          smtpUser,
+          smtpPass: smtpPass || undefined,
+          smtpSecure,
+          smtpFrom,
+          smtpTo,
         }),
       });
       const data = await res.json();
       if (res.ok) {
         setSettingsSuccess(true);
+        if (smtpPass) {
+          setHasSmtpPass(true);
+          setSmtpPass('');
+        }
         setTimeout(() => setSettingsSuccess(false), 4000);
       } else {
         setSettingsError(data.error || 'Ayarlar kaydedilemedi.');
@@ -412,6 +446,80 @@ export default function AdminPage() {
       setSettingsError('Bağlantı hatası oluştu.');
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  // Save Dedicated SMTP Settings
+  const handleSaveSmtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setSavingSmtp(true);
+    setSmtpError('');
+    setSmtpSuccess(false);
+
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contactEmail,
+          googleVerification,
+          naverVerification,
+          smtpHost,
+          smtpPort,
+          smtpUser,
+          smtpPass: smtpPass || undefined,
+          smtpSecure,
+          smtpFrom,
+          smtpTo,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSmtpSuccess(true);
+        if (smtpPass) {
+          setHasSmtpPass(true);
+          setSmtpPass('');
+        }
+        setTimeout(() => setSmtpSuccess(false), 4000);
+      } else {
+        setSmtpError(data.error || 'SMTP ayarları kaydedilemedi.');
+      }
+    } catch (err) {
+      setSmtpError('Bağlantı hatası oluştu.');
+    } finally {
+      setSavingSmtp(false);
+    }
+  };
+
+  // Test SMTP Email Delivery
+  const handleTestSmtp = async () => {
+    setTestingSmtp(true);
+    setSmtpTestResult(null);
+    try {
+      const res = await fetch('/api/admin/smtp/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: smtpTo || contactEmail }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSmtpTestResult({
+          success: true,
+          message: data.message || 'Test e-postası başarıyla gönderildi!',
+        });
+      } else {
+        setSmtpTestResult({
+          success: false,
+          message: data.error || 'Test e-postası gönderilemedi. Lütfen SMTP bilgilerinizi kontrol edip kaydedin.',
+        });
+      }
+    } catch (err) {
+      setSmtpTestResult({
+        success: false,
+        message: 'Bağlantı hatası oluştu. Sunucuya ulaşılamıyor.',
+      });
+    } finally {
+      setTestingSmtp(false);
     }
   };
 
@@ -1021,6 +1129,226 @@ export default function AdminPage() {
                 </div>
               </form>
 
+            </div>
+
+            {/* SMTP EMAIL NOTIFICATION SECTION */}
+            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 mt-8">
+              <div className="flex items-start justify-between border-b border-slate-100 pb-6 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                    <Send className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-950">SMTP E-Posta Bildirim Ayarları</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Sitedeki iletişim formu doldurulduğunda bildirimlerin anında kendi e-postanıza düşmesini sağlar
+                    </p>
+                  </div>
+                </div>
+                <span className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-medium ${
+                  smtpHost && (smtpUser || hasSmtpPass)
+                    ? 'text-emerald-700 bg-emerald-50 border border-emerald-100'
+                    : 'text-amber-700 bg-amber-50 border border-amber-100'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${smtpHost && (smtpUser || hasSmtpPass) ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
+                  {smtpHost && (smtpUser || hasSmtpPass) ? 'SMTP Aktif' : 'SMTP Yapılandırılmadı'}
+                </span>
+              </div>
+
+              {/* Informative tip banner */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 mb-6 text-xs text-slate-600 space-y-1.5">
+                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>Nasıl Çalışır?</span>
+                </div>
+                <p>
+                  Bir ziyaretçi web sitesindeki formu doldurduğunda mesaj hem SQLite veritabanında saklanır (Gelen Mesajlar sekmesinde görünür), hem de aşağıdaki SMTP bilgileriyle anında e-posta adresinize yönlendirilir.
+                </p>
+                <p className="text-slate-500 text-[11px]">
+                  💡 <strong>Gmail kullanıcıları için:</strong> Normal şifrenizi değil; Google Hesabınızdan <em>(Güvenlik &gt; 2 Adımlı Doğrulama &gt; Uygulama Şifreleri)</em> aldığınız 16 haneli Uygulama Şifresini girmelisiniz.
+                </p>
+              </div>
+
+              <form onSubmit={handleSaveSmtp} className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {/* SMTP Host */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                      SMTP Sunucu Adresi (Host)
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpHost}
+                      onChange={(e) => setSmtpHost(e.target.value)}
+                      placeholder="Örn: smtp.gmail.com veya mail.fmkal.com"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs font-mono text-slate-900"
+                    />
+                  </div>
+
+                  {/* SMTP Port */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                      Port Numarası
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpPort}
+                      onChange={(e) => setSmtpPort(e.target.value)}
+                      placeholder="465 veya 587"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs font-mono text-slate-900"
+                    />
+                  </div>
+
+                  {/* SMTP User */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                      SMTP Kullanıcı Adı / E-Posta
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpUser}
+                      onChange={(e) => setSmtpUser(e.target.value)}
+                      placeholder="Örn: bildirim@fmkal.com veya kullanici@gmail.com"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs font-mono text-slate-900"
+                    />
+                  </div>
+
+                  {/* SSL / TLS Protocol */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                      Güvenlik Protokolü
+                    </label>
+                    <select
+                      value={smtpSecure ? 'true' : 'false'}
+                      onChange={(e) => setSmtpSecure(e.target.value === 'true')}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs font-medium text-slate-900 cursor-pointer"
+                    >
+                      <option value="true">SSL / TLS (Port 465 - Güvenli)</option>
+                      <option value="false">STARTTLS (Port 587 / 25)</option>
+                    </select>
+                  </div>
+
+                  {/* SMTP Password */}
+                  <div className="sm:col-span-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                        SMTP Parolası / Uygulama Şifresi
+                      </label>
+                      {hasSmtpPass && (
+                        <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          ✓ Parola Kayıtlı (Değiştirmek istemiyorsanız boş bırakın)
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="password"
+                      value={smtpPass}
+                      onChange={(e) => setSmtpPass(e.target.value)}
+                      placeholder={hasSmtpPass ? '•••••••••••••••• (Mevcut şifre korunuyor)' : 'SMTP şifrenizi veya Google Uygulama Şifresini girin'}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs font-mono text-slate-900"
+                    />
+                  </div>
+
+                  {/* SMTP From */}
+                  <div className="sm:col-span-1 md:col-span-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                      Gönderen Başlığı (From)
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpFrom}
+                      onChange={(e) => setSmtpFrom(e.target.value)}
+                      placeholder="FMKAL Web <bildirim@fmkal.com>"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs font-mono text-slate-900"
+                    />
+                  </div>
+
+                  {/* SMTP To */}
+                  <div className="sm:col-span-2 md:col-span-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                      Bildirimlerin Düşeceği E-Posta (To)
+                    </label>
+                    <input
+                      type="email"
+                      value={smtpTo}
+                      onChange={(e) => setSmtpTo(e.target.value)}
+                      placeholder={contactEmail ? `Varsayılan: ${contactEmail}` : 'sahis@fmkal.com'}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-xs font-mono text-slate-900"
+                    />
+                    <span className="text-[11px] text-slate-400 mt-1 block">
+                      Boş bırakılırsa üstteki Genel İletişim E-Posta adresine ({contactEmail}) gönderilir.
+                    </span>
+                  </div>
+                </div>
+
+                {smtpSuccess && (
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>SMTP ayarları başarıyla kaydedildi! Artık test e-postası gönderebilirsiniz.</span>
+                  </div>
+                )}
+
+                {smtpError && (
+                  <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{smtpError}</span>
+                  </div>
+                )}
+
+                {smtpTestResult && (
+                  <div className={`p-4 rounded-xl border text-xs font-medium flex items-center gap-2 ${
+                    smtpTestResult.success
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                      : 'bg-rose-50 border-rose-200 text-rose-800'
+                  }`}>
+                    {smtpTestResult.success ? (
+                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    )}
+                    <span>{smtpTestResult.message}</span>
+                  </div>
+                )}
+
+                <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={handleTestSmtp}
+                    disabled={testingSmtp || (!smtpHost && !hasSmtpPass)}
+                    className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {testingSmtp ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-slate-700 border-t-transparent rounded-full animate-spin" />
+                        <span>Test E-Postası Gönderiliyor...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Test E-Postası Gönder</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={savingSmtp}
+                    className="px-6 py-2.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {savingSmtp ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Kaydediliyor...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-3.5 h-3.5" />
+                        <span>SMTP Ayarlarını Kaydet</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
 
             {/* PASSWORD CHANGE SECTION */}

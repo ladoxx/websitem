@@ -13,7 +13,7 @@ export const metadata: Metadata = {
       'Yeni bir web sitesi, reklam videosu veya şirket içi dijital çözüm projeniz için doğrudan iletişime geçin.',
     url: 'https://fmkal.com/iletisim',
     type: 'website',
-    images: ['/assets/fmkal_ui_showcase_png_1792038188349.jpg'],
+    images: ['/og-image.png'],
   },
 };
 

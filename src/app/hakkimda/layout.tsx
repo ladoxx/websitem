@@ -13,7 +13,7 @@ export const metadata: Metadata = {
       'Furkan Mert Kalyon kimdir? Bağımsız dijital stüdyo vizyonu, tasarım ve mühendislik prensipleri.',
     url: 'https://fmkal.com/hakkimda',
     type: 'profile',
-    images: ['/assets/fmkal_ui_showcase_png_1792038188349.jpg'],
+    images: ['/og-image.png'],
   },
 };
 

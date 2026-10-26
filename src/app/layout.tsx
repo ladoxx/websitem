@@ -15,12 +15,14 @@ export async function generateMetadata(): Promise<Metadata> {
   let googleVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '';
   let naverVerification = process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION || '';
   let contactEmail = 'iletisim@fmkal.com';
+  let ogImage = '/og-image.png';
 
   try {
     const settings = getAllSettings();
     if (settings.google_verification) googleVerification = settings.google_verification;
     if (settings.naver_verification) naverVerification = settings.naver_verification;
     if (settings.contact_email) contactEmail = settings.contact_email;
+    if (settings.og_image) ogImage = settings.og_image;
   } catch {
     // Fallback to env or defaults during static build if DB is locked
   }
@@ -98,7 +100,7 @@ export async function generateMetadata(): Promise<Metadata> {
         'Markanız için modern web siteleri, 4K AI reklam videoları ve güvenli dijital altyapı çözümleri. | 브랜드를 위한 최신 웹사이트 제작 및 AI 광고 영상 스튜디오.',
       images: [
         {
-          url: '/assets/fmkal_ui_showcase_png_1792038188349.jpg',
+          url: ogImage,
           width: 1200,
           height: 630,
           alt: 'FMKAL — Bağımsız Dijital Stüdyo & Web Geliştirme (독립 디지털 스튜디오)',
@@ -110,7 +112,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: 'FMKAL | Bağımsız Dijital Stüdyo & Web Geliştirme',
       description:
         'Furkan Mert Kalyon — Modern web siteleri, yaratıcı AI reklam videoları ve güvenli dijital altyapı çözümleri.',
-      images: ['/assets/fmkal_ui_showcase_png_1792038188349.jpg'],
+      images: [ogImage],
     },
     robots: {
       index: true,

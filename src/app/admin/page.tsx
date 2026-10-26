@@ -75,6 +75,8 @@ export default function AdminPage() {
   const [contactEmail, setContactEmail] = useState('iletisim@fmkal.com');
   const [googleVerification, setGoogleVerification] = useState('');
   const [naverVerification, setNaverVerification] = useState('');
+  const [ogImage, setOgImage] = useState('/og-image.png');
+  const [uploadingOgImage, setUploadingOgImage] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [settingsError, setSettingsError] = useState('');
@@ -174,6 +176,7 @@ export default function AdminPage() {
       if (settingsRes.contactEmail) setContactEmail(settingsRes.contactEmail);
       if (typeof settingsRes.googleVerification === 'string') setGoogleVerification(settingsRes.googleVerification);
       if (typeof settingsRes.naverVerification === 'string') setNaverVerification(settingsRes.naverVerification);
+      if (settingsRes.ogImage) setOgImage(settingsRes.ogImage);
       if (settingsRes.smtpHost) setSmtpHost(settingsRes.smtpHost);
       if (settingsRes.smtpPort) setSmtpPort(String(settingsRes.smtpPort));
       if (settingsRes.smtpUser) setSmtpUser(settingsRes.smtpUser);
@@ -458,6 +461,7 @@ export default function AdminPage() {
           contactEmail,
           googleVerification,
           naverVerification,
+          ogImage,
           smtpHost,
           smtpPort,
           smtpUser,
@@ -500,6 +504,7 @@ export default function AdminPage() {
           contactEmail,
           googleVerification,
           naverVerification,
+          ogImage,
           smtpHost,
           smtpPort,
           smtpUser,
@@ -652,6 +657,79 @@ export default function AdminPage() {
     } finally {
       setQuickUploadingId(null);
       e.target.value = '';
+    }
+  };
+
+  const handleUploadOgImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingOgImage(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+
+      const uploadRes = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: fd,
+      });
+      const uploadData = await uploadRes.json();
+
+      if (uploadRes.ok && uploadData.url) {
+        setOgImage(uploadData.url);
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contactEmail,
+            googleVerification,
+            naverVerification,
+            ogImage: uploadData.url,
+            smtpHost,
+            smtpPort,
+            smtpUser,
+            smtpSecure,
+            smtpFrom,
+            smtpTo,
+          }),
+        });
+        setSettingsSuccess(true);
+        setTimeout(() => setSettingsSuccess(false), 3000);
+        loadMedia();
+      } else {
+        alert(uploadData.error || 'Görsel yüklenemedi.');
+      }
+    } catch (err) {
+      alert('Resim yüklenirken bağlantı hatası oluştu.');
+    } finally {
+      setUploadingOgImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleResetOgImage = async () => {
+    setOgImage('/og-image.png');
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contactEmail,
+          googleVerification,
+          naverVerification,
+          ogImage: '/og-image.png',
+          smtpHost,
+          smtpPort,
+          smtpUser,
+          smtpSecure,
+          smtpFrom,
+          smtpTo,
+        }),
+      });
+      setSettingsSuccess(true);
+      setTimeout(() => setSettingsSuccess(false), 3000);
+    } catch (err) {
+      alert('Varsayılana sıfırlanırken hata oluştu.');
     }
   };
 
@@ -1413,6 +1491,84 @@ export default function AdminPage() {
                       </div>
                       <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600" />
                     </a>
+                  </div>
+                </div>
+
+                {/* SOSYAL MEDYA PAYLAŞIM GÖRSELİ (OPEN GRAPH / LOGO) */}
+                <div className="pt-6 border-t border-slate-100 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-950 flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-blue-600" />
+                        <span>Sosyal Medya &amp; Link Paylaşım Görseli (Open Graph)</span>
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        WhatsApp, Telegram, Twitter, LinkedIn veya iMessage&apos;da fmkal.com linki paylaşıldığında çıkan logolu önizleme kartı
+                      </p>
+                    </div>
+                    <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full">
+                      1200 x 630 HD
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-950 rounded-2xl p-4 sm:p-5 border border-slate-800 flex flex-col md:flex-row gap-5 items-center">
+                    {/* Preview box */}
+                    <div className="relative w-full md:w-72 aspect-[1200/630] rounded-xl overflow-hidden bg-slate-900 border border-slate-700/80 shadow-md shrink-0 group">
+                      <Image
+                        src={ogImage}
+                        alt="Sosyal Medya Paylaşım Görseli"
+                        fill
+                        unoptimized
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-2.5">
+                        <span className="text-[10px] font-mono font-medium text-white/90 bg-black/60 px-2 py-0.5 rounded backdrop-blur-sm">
+                          Önizleme
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Actions & info */}
+                    <div className="flex-1 w-full space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1">
+                          Aktif Görsel URL Bağlantısı
+                        </label>
+                        <input
+                          type="text"
+                          value={ogImage}
+                          onChange={(e) => setOgImage(e.target.value)}
+                          placeholder="/og-image.png"
+                          className="w-full px-3.5 py-2 rounded-xl border border-slate-700 bg-slate-900 text-slate-100 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <label className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-sm hover:shadow active:scale-95">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>{uploadingOgImage ? 'Yükleniyor...' : 'Yeni Logolu Görsel Yükle'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleUploadOgImage}
+                            disabled={uploadingOgImage}
+                            className="hidden"
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={handleResetOgImage}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition-all hover:text-white"
+                        >
+                          Varsayılana Sıfırla (Resmi FMKAL Logosu)
+                        </button>
+                      </div>
+
+                      <p className="text-[11px] text-slate-400">
+                        💡 Tavsiye edilen format: 1200x630 piksel PNG veya JPG. Yeni bir logo veya görsel yüklendiğinde anında kaydedilir ve sosyal medya paylaşımlarında görünür.
+                      </p>
+                    </div>
                   </div>
                 </div>
 

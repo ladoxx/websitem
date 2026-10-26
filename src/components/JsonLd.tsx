@@ -26,7 +26,7 @@ export default function JsonLd({ contactEmail = 'iletisim@fmkal.com' }: JsonLdPr
           width: 512,
           height: 512,
         },
-        image: `${baseUrl}/assets/fmkal_ui_showcase_png_1792038188349.jpg`,
+        image: `${baseUrl}/og-image.png`,
         description:
           'Markanız için modern web siteleri, yaratıcı AI reklam videoları ve güvenli dijital altyapı çözümleri. | 브랜드를 위한 최신 웹사이트 제작, 4K AI 광고 영상 및 프라이빗 클라우드 인프라 스튜디오.',
         email: contactEmail,

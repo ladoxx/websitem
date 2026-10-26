@@ -11,6 +11,7 @@ export async function GET() {
       contactEmail: settings.contact_email || 'iletisim@fmkal.com',
       googleVerification: settings.google_verification || '',
       naverVerification: settings.naver_verification || '',
+      ogImage: settings.og_image || '/og-image.png',
     };
 
     if (isAdmin) {
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
       contactEmail,
       googleVerification,
       naverVerification,
+      ogImage,
       smtpHost,
       smtpPort,
       smtpUser,
@@ -66,6 +68,9 @@ export async function POST(request: Request) {
     }
     if (typeof naverVerification === 'string') {
       setSetting('naver_verification', naverVerification.trim());
+    }
+    if (typeof ogImage === 'string') {
+      setSetting('og_image', ogImage.trim());
     }
 
     // SMTP Settings

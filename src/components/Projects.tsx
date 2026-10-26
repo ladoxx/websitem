@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +11,28 @@ import { useTranslation } from '@/context/LanguageContext';
 export default function Projects() {
   const [activeCategory, setActiveCategory] = useState<string>('Tümü');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projectsList, setProjectsList] = useState<Project[]>(PROJECTS);
   const { lang, t } = useTranslation();
+
+  // Sync images if updated dynamically via Admin
+  useEffect(() => {
+    fetch('/api/projects')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.projects && Array.isArray(data.projects)) {
+          setProjectsList((prev) =>
+            prev.map((p) => {
+              const matched = data.projects.find((dp: any) => dp.id === p.id);
+              if (matched && matched.thumbnail) {
+                return { ...p, image: matched.thumbnail };
+              }
+              return p;
+            })
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const categories = [
     { key: 'Tümü', label: t.projects.all },
@@ -30,8 +51,8 @@ export default function Projects() {
 
   const filteredProjects =
     activeCategory === 'Tümü'
-      ? PROJECTS
-      : PROJECTS.filter((p) => p.category === activeCategory);
+      ? projectsList
+      : projectsList.filter((p) => p.category === activeCategory);
 
   return (
     <section id="projeler" className="py-24 sm:py-32 relative overflow-hidden">

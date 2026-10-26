@@ -27,8 +27,27 @@ import {
   AlertCircle,
   Settings,
   Send,
+  Upload,
+  Camera,
+  Image as ImageIcon,
+  Copy,
 } from 'lucide-react';
 import { ShowcaseProject, ShowcaseType } from '@/data/showcaseWebsites';
+
+const PRESET_IMAGES = [
+  {
+    label: 'Studio Dark Master',
+    url: '/assets/fmkal_design_alt1_studio_png_1792050145467.jpg',
+  },
+  {
+    label: 'Modern UI Showcase',
+    url: '/assets/fmkal_design_alt2_modern_ui_png_1792050167377.jpg',
+  },
+  {
+    label: 'Clean Glass Platform',
+    url: '/assets/fmkal_ui_showcase_png_1792038188349.jpg',
+  },
+];
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -50,7 +69,7 @@ export default function AdminPage() {
   const [passwordError, setPasswordError] = useState('');
 
   // Dashboard Data State
-  const [activeTab, setActiveTab] = useState<'projects' | 'messages' | 'settings'>('projects');
+  const [activeTab, setActiveTab] = useState<'projects' | 'messages' | 'media' | 'settings'>('projects');
   const [projects, setProjects] = useState<ShowcaseProject[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [contactEmail, setContactEmail] = useState('iletisim@fmkal.com');
@@ -59,6 +78,16 @@ export default function AdminPage() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [settingsError, setSettingsError] = useState('');
+
+  // Media / Upload State
+  const [mediaFiles, setMediaFiles] = useState<{ filename: string; url: string; size: number; mtime: number }[]>([]);
+  const [loadingMedia, setLoadingMedia] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [quickUploadingId, setQuickUploadingId] = useState<string | null>(null);
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
   // SMTP Configuration State
   const [smtpHost, setSmtpHost] = useState('');
@@ -152,6 +181,7 @@ export default function AdminPage() {
       if (settingsRes.smtpFrom) setSmtpFrom(settingsRes.smtpFrom);
       if (settingsRes.smtpTo) setSmtpTo(settingsRes.smtpTo);
       if (settingsRes.hasSmtpPass) setHasSmtpPass(settingsRes.hasSmtpPass);
+      loadMedia();
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
     }
@@ -274,6 +304,9 @@ export default function AdminPage() {
   // Open modal for Add
   const handleAddNew = () => {
     setEditingId(null);
+    setUploadError('');
+    setUploadSuccess(false);
+    setShowUrlInput(false);
     setFormData({
       id: `project-${Date.now()}`,
       client: '',
@@ -303,6 +336,9 @@ export default function AdminPage() {
   // Open modal for Edit
   const handleEdit = (p: ShowcaseProject) => {
     setEditingId(p.id);
+    setUploadError('');
+    setUploadSuccess(false);
+    setShowUrlInput(false);
     setFormData({
       id: p.id,
       client: p.client,
@@ -521,6 +557,124 @@ export default function AdminPage() {
     } finally {
       setTestingSmtp(false);
     }
+  };
+
+  // Media & Upload Operations
+  const loadMedia = async () => {
+    setLoadingMedia(true);
+    try {
+      const res = await fetch('/api/admin/upload');
+      const data = await res.json();
+      if (data.files && Array.isArray(data.files)) {
+        setMediaFiles(data.files);
+      }
+    } catch (err) {
+      console.error('Failed to load media files:', err);
+    } finally {
+      setLoadingMedia(false);
+    }
+  };
+
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    setUploadError('');
+    setUploadSuccess(false);
+
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await res.json();
+
+      if (res.ok && data.url) {
+        setFormData((prev) => ({ ...prev, thumbnail: data.url }));
+        setUploadSuccess(true);
+        setTimeout(() => setUploadSuccess(false), 4000);
+        loadMedia();
+      } else {
+        setUploadError(data.error || 'Resim yüklenemedi.');
+      }
+    } catch (err) {
+      setUploadError('Bağlantı hatası oluştu. Resim yüklenemedi.');
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleQuickUpload = async (e: React.ChangeEvent<HTMLInputElement>, project: ShowcaseProject) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setQuickUploadingId(project.id);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+
+      const uploadRes = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: fd,
+      });
+      const uploadData = await uploadRes.json();
+
+      if (uploadRes.ok && uploadData.url) {
+        const updatedProject = {
+          ...project,
+          thumbnail: uploadData.url,
+          liveUrl: project.liveUrl || null,
+          videoUrl: project.videoUrl || null,
+        };
+
+        const saveRes = await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedProject),
+        });
+
+        if (saveRes.ok) {
+          loadData();
+          loadMedia();
+        } else {
+          alert('Görsel yüklendi ancak proje veritabanında güncellenemedi.');
+        }
+      } else {
+        alert(uploadData.error || 'Görsel yüklenemedi.');
+      }
+    } catch (err) {
+      alert('Resim yüklenirken bağlantı hatası oluştu.');
+    } finally {
+      setQuickUploadingId(null);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteMedia = async (filename: string) => {
+    if (!confirm(`"${filename}" adlı görseli kalıcı olarak silmek istediğinizden emin misiniz?`)) return;
+    try {
+      const res = await fetch(`/api/admin/upload?filename=${encodeURIComponent(filename)}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        loadMedia();
+      } else {
+        alert('Görsel silinemedi.');
+      }
+    } catch (err) {
+      alert('Görsel silinirken hata oluştu.');
+    }
+  };
+
+  const handleCopyUrl = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedUrl(url);
+    setTimeout(() => setCopiedUrl(null), 2500);
   };
 
   // LOADING STATE
@@ -748,6 +902,20 @@ export default function AdminPage() {
               )}
             </button>
             <button
+              onClick={() => {
+                setActiveTab('media');
+                loadMedia();
+              }}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'media'
+                  ? 'bg-slate-950 text-white shadow-sm'
+                  : 'bg-white text-slate-600 hover:text-slate-950 border border-slate-200'
+              }`}
+            >
+              <ImageIcon className="w-3.5 h-3.5" />
+              <span>🖼️ Medya &amp; Resimler ({mediaFiles.length})</span>
+            </button>
+            <button
               onClick={() => setActiveTab('settings')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 activeTab === 'settings'
@@ -780,8 +948,13 @@ export default function AdminPage() {
                 className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-5 hover:border-slate-300 transition-all"
               >
                 <div className="flex items-center gap-4">
-                  <div className="relative w-24 h-16 rounded-xl bg-slate-950 overflow-hidden shrink-0 border border-slate-200">
+                  <div className="relative w-24 h-16 rounded-xl bg-slate-950 overflow-hidden shrink-0 border border-slate-200 group">
                     <Image src={p.thumbnail} alt={p.title} fill className="object-cover" />
+                    {quickUploadingId === p.id && (
+                      <div className="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -817,6 +990,20 @@ export default function AdminPage() {
                       <ExternalLink className="w-4 h-4" />
                     </a>
                   )}
+                  <label
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold transition-colors cursor-pointer"
+                    title="Bu projenin görselini doğrudan telefondan/bilgisayardan değiştirin"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>{quickUploadingId === p.id ? 'Yükleniyor...' : 'Resim Değiştir'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={quickUploadingId === p.id}
+                      className="hidden"
+                      onChange={(e) => handleQuickUpload(e, p)}
+                    />
+                  </label>
                   <button
                     onClick={() => handleEdit(p)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
@@ -911,7 +1098,142 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 3: SITE SETTINGS */}
+        {/* TAB 3: MEDIA / IMAGES LIBRARY */}
+        {activeTab === 'media' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-100 gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                    <ImageIcon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-950">Medya &amp; Görsel Kütüphanesi</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Projelerinizde sergilenen tüm kapak fotoğrafları ve ekran görüntüleri (Kalıcı SQLite / Docker Alanı)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Upload Button */}
+                <label className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer">
+                  {uploadingImage ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Yükleniyor...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      <span>Telefondan / PC'den Resim Yükle</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploadingImage}
+                    onChange={async (e) => {
+                      await handleUploadFile(e);
+                      loadMedia();
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* Upload status messages */}
+              {uploadError && (
+                <div className="mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
+              {uploadSuccess && (
+                <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 shrink-0" />
+                  <span>Görsel başarıyla yüklendi!</span>
+                </div>
+              )}
+
+              {/* Grid of uploaded images */}
+              <div className="mt-6">
+                {loadingMedia ? (
+                  <div className="py-16 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
+                    <div className="w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                    <span>Görseller listeleniyor...</span>
+                  </div>
+                ) : mediaFiles.length === 0 ? (
+                  <div className="py-16 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                    <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                      <ImageIcon className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-800">Henüz Yüklenmiş Görsel Yok</h3>
+                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                      Yukarıdaki butona tıklayarak telefonunuzdan veya bilgisayarınızdan proje kapak resimleri ekleyebilirsiniz.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {mediaFiles.map((file) => (
+                      <div
+                        key={file.filename}
+                        className="group relative rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden flex flex-col justify-between hover:border-slate-300 transition-all shadow-2xs"
+                      >
+                        <div className="relative aspect-video w-full bg-slate-900 overflow-hidden">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={file.url}
+                            alt={file.filename}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                          <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMedia(file.filename)}
+                              className="p-1.5 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-white shadow-sm cursor-pointer"
+                              title="Sil"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="p-3 bg-white space-y-2">
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                            <span className="truncate max-w-[140px]" title={file.filename}>
+                              {file.filename}
+                            </span>
+                            <span>{(file.size / (1024 * 1024)).toFixed(2)} MB</span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleCopyUrl(file.url)}
+                            className="w-full py-1.5 px-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-[11px] font-semibold text-slate-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            {copiedUrl === file.url ? (
+                              <>
+                                <Check className="w-3 h-3 text-emerald-600" />
+                                <span className="text-emerald-600 font-bold">Kopyalandı!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3 text-slate-500" />
+                                <span>URL Kopyala</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: SITE SETTINGS */}
         {activeTab === 'settings' && (
           <div className="max-w-3xl">
             <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8">
@@ -1584,15 +1906,178 @@ export default function AdminPage() {
                       </div>
                     )}
 
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Kapak Resmi URL</label>
-                      <input
-                        type="text"
-                        value={formData.thumbnail}
-                        onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
-                        placeholder="/assets/... veya https://..."
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600 outline-none font-mono"
-                      />
+                    {/* KAPAK RESMİ YÜKLEME VE ÖNİZLEME */}
+                    <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                          <Camera className="w-4 h-4 text-blue-600" />
+                          <span>Proje Kapak Resmi / Görseli *</span>
+                        </label>
+                        {formData.thumbnail ? (
+                          <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            ✓ Görsel Seçili
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                            Resim Yok
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Canlı Görsel Önizleme */}
+                      {formData.thumbnail ? (
+                        <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-slate-900 border border-slate-200 shadow-inner group">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={formData.thumbnail}
+                            alt="Kapak Önizleme"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end justify-between p-3">
+                            <span className="text-[10px] font-mono text-white/90 truncate max-w-[65%] bg-black/50 px-2 py-1 rounded backdrop-blur-xs">
+                              {formData.thumbnail}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, thumbnail: '' })}
+                              className="px-2.5 py-1 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-white text-[11px] font-medium backdrop-blur-sm transition-colors cursor-pointer flex items-center gap-1"
+                            >
+                              <X className="w-3 h-3" />
+                              <span>Kaldır</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="aspect-video w-full rounded-xl border-2 border-dashed border-slate-300 bg-white flex flex-col items-center justify-center p-4 text-center">
+                          <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
+                            <Upload className="w-5 h-5" />
+                          </div>
+                          <p className="text-xs font-semibold text-slate-700">Henüz kapak resmi seçilmedi</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Aşağıdaki butondan galerinizden veya bilgisayarınızdan resim yükleyin
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Yükleme Butonları */}
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <label className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-xs font-bold shadow-xs cursor-pointer transition-all">
+                          {uploadingImage ? (
+                            <>
+                              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              <span>Resim Yükleniyor...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4" />
+                              <span>📁 Telefondan / Bilgisayardan Resim Yükle</span>
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            disabled={uploadingImage}
+                            onChange={handleUploadFile}
+                            className="hidden"
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowUrlInput(!showUrlInput)}
+                          className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
+                          <span>{showUrlInput ? 'Şablonları Gizle' : 'Hazır Şablonlar / URL'}</span>
+                        </button>
+                      </div>
+
+                      <p className="text-[11px] text-slate-500">
+                        📱 <em>Mobil cihazlarda doğrudan kamera veya fotoğraf galerisinden seçim yapabilirsiniz.</em>
+                      </p>
+
+                      {/* Bildirim Mesajları */}
+                      {uploadError && (
+                        <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 shrink-0" />
+                          <span>{uploadError}</span>
+                        </div>
+                      )}
+                      {uploadSuccess && (
+                        <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 shrink-0" />
+                          <span>Resim başarıyla yüklendi ve kapak olarak ayarlandı!</span>
+                        </div>
+                      )}
+
+                      {/* Manuel URL ve Hazır Şablonlar */}
+                      {showUrlInput && (
+                        <div className="pt-3 border-t border-slate-200/70 space-y-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                              Manuel Resim Linki / URL:
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.thumbnail}
+                              onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
+                              placeholder="/assets/... veya https://..."
+                              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-mono focus:ring-2 focus:ring-blue-600 outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-600 mb-1.5">
+                              Hazır Stüdyo Şablonlarından Seç:
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {PRESET_IMAGES.map((preset, idx) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => setFormData({ ...formData, thumbnail: preset.url })}
+                                  className={`group relative aspect-video rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                                    formData.thumbnail === preset.url
+                                      ? 'border-blue-600 ring-2 ring-blue-500/30'
+                                      : 'border-slate-200 hover:border-slate-400'
+                                  }`}
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={preset.url} alt={preset.label} className="w-full h-full object-cover" />
+                                  <div className="absolute inset-x-0 bottom-0 bg-slate-950/75 p-1 text-[9px] font-mono text-white text-center truncate">
+                                    {preset.label}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {mediaFiles.length > 0 && (
+                            <div>
+                              <label className="block text-[11px] font-bold text-slate-600 mb-1.5">
+                                Önceden Yüklediğiniz Görsellerden Seç ({mediaFiles.length}):
+                              </label>
+                              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-36 overflow-y-auto p-1 border border-slate-200 rounded-xl bg-white">
+                                {mediaFiles.map((file) => (
+                                  <button
+                                    key={file.filename}
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, thumbnail: file.url })}
+                                    className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                                      formData.thumbnail === file.url
+                                        ? 'border-blue-600 ring-2 ring-blue-500/30'
+                                        : 'border-slate-200 hover:border-slate-400'
+                                    }`}
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={file.url} alt={file.filename} className="w-full h-full object-cover" />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 

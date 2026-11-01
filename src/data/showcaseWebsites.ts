@@ -23,6 +23,7 @@ export interface ShowcaseProject {
   metrics?: string; // Öne çıkan metrik (örn: "99/100 Hız Skoru", "4K HDR Master")
   duration?: string; // Video süresi (örn: "00:45", "01:10")
   resolution?: string; // Çözünürlük (örn: "4K Cinema 60fps")
+  isFeatured?: boolean; // Ana sayfada öne çıkan ürünlerde gösterilsin mi?
 }
 
 export const SHOWCASE_PROJECTS: ShowcaseProject[] = [
@@ -91,6 +92,7 @@ export const SHOWCASE_PROJECTS: ShowcaseProject[] = [
     },
     liveUrl: 'https://fmkal.com',
     thumbnail: '/assets/fmkal_design_alt2_modern_ui_png_1792050167377.jpg',
+    isFeatured: true,
     tags: ['Next.js 15', 'TypeScript', 'Tailwind CSS', 'Three.js 3D', 'i18n 3 Dil'],
     highlights: {
       tr: ['99/100 Google PageSpeed Skoru', 'İngilizce, Korece, Türkçe Dil Altyapısı', 'Mobil ve Tablette Akıcı UX'],
@@ -115,6 +117,7 @@ export const SHOWCASE_PROJECTS: ShowcaseProject[] = [
     },
     liveUrl: 'https://fmkal.com',
     thumbnail: '/assets/fmkal_design_alt2_modern_ui_png_1792050167377.jpg',
+    isFeatured: true,
     tags: ['Next.js 15', 'Stripe API', 'Tailwind CSS', 'Framer Motion', 'Edge Caching'],
     highlights: {
       tr: ['Sepet Terk Oranında %38 Düşüş', 'Çoklu Para Birimi & Otomatik Kargo', 'Apple Pay & Kredi Kartı Ödeme'],

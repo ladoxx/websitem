@@ -31,6 +31,7 @@ import {
   Camera,
   Image as ImageIcon,
   Copy,
+  Star,
 } from 'lucide-react';
 import { ShowcaseProject, ShowcaseType } from '@/data/showcaseWebsites';
 
@@ -133,6 +134,7 @@ export default function AdminPage() {
     resolution: '4K Cinema // 60FPS',
     metrics: '99/100 PageSpeed',
     tagsInput: 'Next.js 15, TypeScript, Tailwind CSS',
+    isFeatured: true,
 
     // Multilingual Tab Fields
     title_tr: '',
@@ -322,6 +324,7 @@ export default function AdminPage() {
       resolution: '4K Cinema // 60FPS',
       metrics: '99/100 Hız Skoru',
       tagsInput: 'Next.js 15, TypeScript, Tailwind CSS',
+      isFeatured: true,
       title_tr: '',
       title_en: '',
       title_ko: '',
@@ -354,6 +357,7 @@ export default function AdminPage() {
       resolution: p.resolution || '',
       metrics: p.metrics || '',
       tagsInput: p.tags.join(', '),
+      isFeatured: Boolean(p.isFeatured),
       title_tr: p.title,
       title_en: p.title,
       title_ko: p.title,
@@ -385,6 +389,7 @@ export default function AdminPage() {
       resolution: formData.resolution || null,
       metrics: formData.metrics || null,
       tags: formData.tagsInput.split(',').map((t) => t.trim()).filter(Boolean),
+      isFeatured: formData.isFeatured,
       title_tr: formData.title_tr || formData.client,
       title_en: formData.title_en || formData.title_tr || formData.client,
       title_ko: formData.title_ko || formData.title_tr || formData.client,
@@ -413,6 +418,22 @@ export default function AdminPage() {
       console.error('Save failed:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Toggle Featured status directly from card
+  const handleToggleFeatured = async (id: string) => {
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, toggle: true }),
+      });
+      if (res.ok) {
+        loadData();
+      }
+    } catch (err) {
+      console.error('Toggle featured failed:', err);
     }
   };
 
@@ -1050,6 +1071,18 @@ export default function AdminPage() {
                       >
                         {p.type}
                       </span>
+                      {p.isFeatured && (
+                        <span className="px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-mono font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
+                          <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-600" />
+                          <span>Ana Sayfada Öne Çıkan</span>
+                        </span>
+                      )}
+                      {p.liveUrl && (
+                        <span className="px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 hidden sm:inline-flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <span>Canlı Link</span>
+                        </span>
+                      )}
                       <span className="text-[11px] sm:text-xs font-mono text-slate-400">
                         {p.client} &bull; {p.year}
                       </span>
@@ -1059,16 +1092,33 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0 justify-end w-full md:w-auto pt-2.5 border-t border-slate-100 md:border-0 md:pt-0">
+                <div className="flex flex-wrap items-center gap-2 shrink-0 justify-end w-full md:w-auto pt-2.5 border-t border-slate-100 md:border-0 md:pt-0">
+                  {/* Quick Toggle for Home Page Showcase */}
+                  <button
+                    type="button"
+                    onClick={() => handleToggleFeatured(p.id)}
+                    className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      p.isFeatured
+                        ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 shadow-2xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200'
+                    }`}
+                    title={p.isFeatured ? 'Ana sayfadaki öne çıkan vitrinden kaldır' : 'Ana sayfadaki öne çıkan ürünler vitrinine ekle'}
+                  >
+                    <Star className={`w-3.5 h-3.5 ${p.isFeatured ? 'fill-amber-500 text-amber-600' : 'text-slate-400'}`} />
+                    <span>{p.isFeatured ? 'Ana Sayfada' : 'Öne Çıkar'}</span>
+                  </button>
+
                   {p.liveUrl && (
                     <a
                       href={p.liveUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
-                      title="Canlı Siteyi Aç"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold transition-colors"
+                      title={`Canlı Web Sitesini Aç (${p.liveUrl})`}
                     >
-                      <ExternalLink className="w-4 h-4" />
+                      <Globe className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Siteyi Aç</span>
+                      <ExternalLink className="w-3 h-3" />
                     </a>
                   )}
                   <label
@@ -2034,21 +2084,75 @@ export default function AdminPage() {
                     </div>
                   </div>
 
+                  {/* ANA SAYFADA ÖNE ÇIKAR PROMPT / SEÇENEK */}
+                  <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-300/80 flex items-center justify-between gap-3 sm:gap-4 shadow-2xs">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-100 border border-amber-300 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                        <Star className="w-5 h-5 fill-amber-500 text-amber-600" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <label htmlFor="modalIsFeatured" className="text-xs sm:text-sm font-bold text-slate-950 cursor-pointer">
+                            Ana Sayfada &quot;Öne Çıkan Ürünler&quot; Bölümünde Göster
+                          </label>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500 text-white">
+                            Vitrin
+                          </span>
+                        </div>
+                        <p className="text-[11px] sm:text-xs text-slate-600 mt-0.5">
+                          İşaretlendiğinde bu web sitesi / ürün, doğrudan ana sayfanın en üstündeki &quot;Öne Çıkan Ürünler &amp; Canlı Web Siteleri&quot; vitrininde tıklanabilir linkiyle birlikte sergilenir.
+                        </p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        id="modalIsFeatured"
+                        type="checkbox"
+                        checked={formData.isFeatured}
+                        onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                  </div>
+
                   {/* Linkler: Live URL vs Video URL */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {formData.type !== 'Video' ? (
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
-                          Canlı Web Sitesi Linki *
+                        <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <Globe className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Canlı Web Sitesi / Ürün Linki *</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">(Ziyaretçilerin gideceği adres)</span>
                         </label>
-                        <input
-                          type="url"
-                          required
-                          value={formData.liveUrl}
-                          onChange={(e) => setFormData({ ...formData, liveUrl: e.target.value })}
-                          placeholder="https://musterisitesi.com"
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600 outline-none font-mono"
-                        />
+                        <div className="relative">
+                          <input
+                            type="url"
+                            required
+                            value={formData.liveUrl}
+                            onChange={(e) => setFormData({ ...formData, liveUrl: e.target.value })}
+                            placeholder="https://musterisitesi.com"
+                            className="w-full px-3 py-2 pr-8 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600 outline-none font-mono"
+                          />
+                          {formData.liveUrl && (
+                            <a
+                              href={formData.liveUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600"
+                              title="Linki Test Et"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </div>
+                        {formData.liveUrl && (
+                          <p className="text-[10px] font-mono text-emerald-600 mt-1 flex items-center gap-1">
+                            ✓ Tıklanabilir canlı bağlantı aktif
+                          </p>
+                        )}
                       </div>
                     ) : (
                       <div>

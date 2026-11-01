@@ -48,6 +48,7 @@ function initTables(database: Database.Database) {
       duration TEXT,
       resolution TEXT,
       order_index INTEGER DEFAULT 0,
+      is_featured INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -66,6 +67,17 @@ function initTables(database: Database.Database) {
       value TEXT NOT NULL
     );
   `);
+
+  // Ensure is_featured column exists in existing database
+  try {
+    const tableInfo = database.prepare('PRAGMA table_info(projects)').all() as { name: string }[];
+    const hasIsFeatured = tableInfo.some((col) => col.name === 'is_featured');
+    if (!hasIsFeatured) {
+      database.exec('ALTER TABLE projects ADD COLUMN is_featured INTEGER DEFAULT 0');
+    }
+  } catch (err) {
+    console.error('Migration error checking is_featured column:', err);
+  }
 }
 
 function seedIfEmpty(database: Database.Database) {
@@ -78,14 +90,14 @@ function seedIfEmpty(database: Database.Database) {
         highlights_tr, highlights_en, highlights_ko,
         client, year, type,
         live_url, video_url, thumbnail,
-        tags, metrics, duration, resolution, order_index
+        tags, metrics, duration, resolution, order_index, is_featured
       ) VALUES (
         @id, @title_tr, @title_en, @title_ko,
         @desc_tr, @desc_en, @desc_ko,
         @highlights_tr, @highlights_en, @highlights_ko,
         @client, @year, @type,
         @live_url, @video_url, @thumbnail,
-        @tags, @metrics, @duration, @resolution, @order_index
+        @tags, @metrics, @duration, @resolution, @order_index, @is_featured
       )
     `);
 
@@ -114,6 +126,7 @@ function seedIfEmpty(database: Database.Database) {
           duration: p.duration || null,
           resolution: p.resolution || null,
           order_index: i,
+          is_featured: p.isFeatured ? 1 : 0,
         });
       }
     });
@@ -153,6 +166,7 @@ export function mapRowToProject(row: any): ShowcaseProject {
     metrics: row.metrics || undefined,
     duration: row.duration || undefined,
     resolution: row.resolution || undefined,
+    isFeatured: row.is_featured === 1 || row.is_featured === true || row.is_featured === '1',
   };
 }
 
@@ -177,7 +191,8 @@ export function saveProject(data: any): ShowcaseProject {
         highlights_tr = @highlights_tr, highlights_en = @highlights_en, highlights_ko = @highlights_ko,
         client = @client, year = @year, type = @type,
         live_url = @live_url, video_url = @video_url, thumbnail = @thumbnail,
-        tags = @tags, metrics = @metrics, duration = @duration, resolution = @resolution
+        tags = @tags, metrics = @metrics, duration = @duration, resolution = @resolution,
+        is_featured = @is_featured
       WHERE id = @id
     `).run({
       id,
@@ -200,6 +215,7 @@ export function saveProject(data: any): ShowcaseProject {
       metrics: data.metrics || null,
       duration: data.duration || null,
       resolution: data.resolution || null,
+      is_featured: (data.isFeatured || data.is_featured) ? 1 : 0,
     });
   } else {
     database.prepare(`
@@ -209,14 +225,16 @@ export function saveProject(data: any): ShowcaseProject {
         highlights_tr, highlights_en, highlights_ko,
         client, year, type,
         live_url, video_url, thumbnail,
-        tags, metrics, duration, resolution
+        tags, metrics, duration, resolution,
+        is_featured
       ) VALUES (
         @id, @title_tr, @title_en, @title_ko,
         @desc_tr, @desc_en, @desc_ko,
         @highlights_tr, @highlights_en, @highlights_ko,
         @client, @year, @type,
         @live_url, @video_url, @thumbnail,
-        @tags, @metrics, @duration, @resolution
+        @tags, @metrics, @duration, @resolution,
+        @is_featured
       )
     `).run({
       id,
@@ -239,6 +257,7 @@ export function saveProject(data: any): ShowcaseProject {
       metrics: data.metrics || null,
       duration: data.duration || null,
       resolution: data.resolution || null,
+      is_featured: (data.isFeatured || data.is_featured) ? 1 : 0,
     });
   }
 
@@ -250,6 +269,21 @@ export function deleteProject(id: string): boolean {
   const database = getDb();
   const res = database.prepare('DELETE FROM projects WHERE id = ?').run(id);
   return res.changes > 0;
+}
+
+export function toggleProjectFeatured(id: string): boolean {
+  const database = getDb();
+  const row = database.prepare('SELECT is_featured FROM projects WHERE id = ?').get(id) as { is_featured: number } | undefined;
+  if (!row) return false;
+  const newValue = row.is_featured === 1 ? 0 : 1;
+  database.prepare('UPDATE projects SET is_featured = ? WHERE id = ?').run(newValue, id);
+  return true;
+}
+
+export function getFeaturedProjects(): ShowcaseProject[] {
+  const database = getDb();
+  const rows = database.prepare('SELECT * FROM projects WHERE is_featured = 1 ORDER BY order_index ASC, created_at DESC').all();
+  return rows.map(mapRowToProject);
 }
 
 // Contact Messages Queries

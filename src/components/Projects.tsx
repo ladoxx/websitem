@@ -14,21 +14,43 @@ export default function Projects() {
   const [projectsList, setProjectsList] = useState<Project[]>(PROJECTS);
   const { lang, t } = useTranslation();
 
-  // Sync images if updated dynamically via Admin
+  // Sync and load dynamic projects from SQLite
   useEffect(() => {
     fetch('/api/projects')
       .then((res) => res.json())
       .then((data) => {
-        if (data.projects && Array.isArray(data.projects)) {
-          setProjectsList((prev) =>
-            prev.map((p) => {
-              const matched = data.projects.find((dp: any) => dp.id === p.id);
-              if (matched && matched.thumbnail) {
-                return { ...p, image: matched.thumbnail };
-              }
-              return p;
-            })
-          );
+        if (data.projects && Array.isArray(data.projects) && data.projects.length > 0) {
+          const dynamicProjects: Project[] = data.projects.map((dp: any) => {
+            const category: Project['category'] =
+              dp.type === 'Video' ? 'AI Video' : dp.type === 'SaaS Uygulaması' ? 'Bulut & Sistem' : 'Web Geliştirme';
+            return {
+              id: dp.id,
+              title: dp.title,
+              titleI18n: {
+                tr: dp.title_tr || dp.title,
+                en: dp.title_en || dp.title,
+                ko: dp.title_ko || dp.title,
+              },
+              category,
+              isDemonstration: !dp.liveUrl,
+              tagline: dp.client ? `${dp.client} // ${dp.metrics || dp.year}` : dp.title,
+              taglineI18n: {
+                tr: dp.client ? `${dp.client} // ${dp.metrics || dp.year}` : dp.title,
+                en: dp.client ? `${dp.client} // ${dp.metrics || dp.year}` : dp.title,
+                ko: dp.client ? `${dp.client} // ${dp.metrics || dp.year}` : dp.title,
+              },
+              description: typeof dp.description === 'string' ? dp.description : dp.description?.tr || '',
+              descriptionI18n: {
+                tr: typeof dp.description === 'string' ? dp.description : dp.description?.tr || '',
+                en: typeof dp.description === 'string' ? dp.description : dp.description?.en || '',
+                ko: typeof dp.description === 'string' ? dp.description : dp.description?.ko || '',
+              },
+              techStack: dp.tags || [],
+              image: dp.thumbnail,
+              demoUrl: dp.liveUrl || undefined,
+            };
+          });
+          setProjectsList(dynamicProjects);
         }
       })
       .catch(() => {});
@@ -198,15 +220,25 @@ export default function Projects() {
                     <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         {project.demoUrl ? (
-                          <a
-                            href={project.demoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-slate-950 hover:bg-blue-600 px-4 py-2 rounded-full transition-colors shadow-2xs group/link"
-                          >
-                            <span>{liveSiteLabel}</span>
-                            <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
-                          </a>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <a
+                              href={project.demoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 active:bg-blue-700 px-4 py-2 rounded-full transition-all shadow-sm group/link"
+                            >
+                              <span>{liveSiteLabel}</span>
+                              <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
+                            </a>
+                            <a
+                              href={project.demoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] font-mono text-slate-500 hover:text-blue-600 transition-colors hidden sm:inline-block"
+                            >
+                              {project.demoUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                            </a>
+                          </div>
                         ) : (
                           <button
                             onClick={() => setSelectedProject(project)}

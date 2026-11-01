@@ -11,6 +11,9 @@ export interface Project {
   techStack: string[];
   image: string;
   demoUrl?: string;
+  videoUrl?: string;
+  client?: string;
+  isFeatured?: boolean;
 }
 
 export const PROJECTS: Project[] = [

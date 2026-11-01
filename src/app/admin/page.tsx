@@ -1074,7 +1074,7 @@ export default function AdminPage() {
                       {p.isFeatured && (
                         <span className="px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-mono font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
                           <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-600" />
-                          <span>Ana Sayfada Öne Çıkan</span>
+                          <span>Seçilmiş Projeler&apos;de Yayında</span>
                         </span>
                       )}
                       {p.liveUrl && (
@@ -1102,10 +1102,10 @@ export default function AdminPage() {
                         ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 shadow-2xs'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200'
                     }`}
-                    title={p.isFeatured ? 'Ana sayfadaki öne çıkan vitrinden kaldır' : 'Ana sayfadaki öne çıkan ürünler vitrinine ekle'}
+                    title={p.isFeatured ? "Ana sayfadaki 'Seçilmiş Projeler' bölümünden kaldır" : "Ana sayfadaki 'Seçilmiş Projeler' bölümüne ekle"}
                   >
                     <Star className={`w-3.5 h-3.5 ${p.isFeatured ? 'fill-amber-500 text-amber-600' : 'text-slate-400'}`} />
-                    <span>{p.isFeatured ? 'Ana Sayfada' : 'Öne Çıkar'}</span>
+                    <span>{p.isFeatured ? "Seçilmiş Projeler'de" : "Seçilmişlere Ekle"}</span>
                   </button>
 
                   {p.liveUrl && (
@@ -2084,7 +2084,7 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* ANA SAYFADA ÖNE ÇIKAR PROMPT / SEÇENEK */}
+                  {/* ANA SAYFADA SEÇİLMİŞ PROJELER'DE GÖSTER PROMPT */}
                   <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-300/80 flex items-center justify-between gap-3 sm:gap-4 shadow-2xs">
                     <div className="flex items-start gap-3">
                       <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-100 border border-amber-300 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
@@ -2093,14 +2093,14 @@ export default function AdminPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <label htmlFor="modalIsFeatured" className="text-xs sm:text-sm font-bold text-slate-950 cursor-pointer">
-                            Ana Sayfada &quot;Öne Çıkan Ürünler&quot; Bölümünde Göster
+                            Ana Sayfada &quot;Seçilmiş Projeler&quot; Bölümünde Göster
                           </label>
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500 text-white">
-                            Vitrin
+                            Seçilmiş Proje
                           </span>
                         </div>
                         <p className="text-[11px] sm:text-xs text-slate-600 mt-0.5">
-                          İşaretlendiğinde bu web sitesi / ürün, doğrudan ana sayfanın en üstündeki &quot;Öne Çıkan Ürünler &amp; Canlı Web Siteleri&quot; vitrininde tıklanabilir linkiyle birlikte sergilenir.
+                          İşaretlendiğinde bu web sitesi / ürün, doğrudan ana sayfadaki &quot;Seçilmiş Projeler&quot; bölümünde canlı site bağlantısıyla (URL) birlikte sergilenir.
                         </p>
                       </div>
                     </div>

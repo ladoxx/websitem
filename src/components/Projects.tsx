@@ -4,11 +4,15 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUpRight, Eye } from 'lucide-react';
+import { ArrowUpRight, Eye, Globe, ExternalLink, Star } from 'lucide-react';
 import { PROJECTS, Project } from '@/data/projects';
 import { useTranslation } from '@/context/LanguageContext';
 
-export default function Projects() {
+interface ProjectsProps {
+  onlyFeatured?: boolean;
+}
+
+export default function Projects({ onlyFeatured = false }: ProjectsProps) {
   const [activeCategory, setActiveCategory] = useState<string>('Tümü');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectsList, setProjectsList] = useState<Project[]>(PROJECTS);
@@ -48,13 +52,32 @@ export default function Projects() {
               techStack: dp.tags || [],
               image: dp.thumbnail,
               demoUrl: dp.liveUrl || undefined,
+              videoUrl: dp.videoUrl || undefined,
+              client: dp.client,
+              isFeatured: Boolean(dp.isFeatured),
             };
           });
-          setProjectsList(dynamicProjects);
+
+          if (onlyFeatured) {
+            const featuredOnly = dynamicProjects.filter((p) => p.isFeatured);
+            setProjectsList(featuredOnly.length > 0 ? featuredOnly : dynamicProjects);
+          } else {
+            setProjectsList(dynamicProjects);
+          }
         }
       })
       .catch(() => {});
-  }, []);
+  }, [onlyFeatured]);
+
+  const cleanDomain = (url?: string) => {
+    if (!url) return '';
+    try {
+      const parsed = new URL(url);
+      return parsed.hostname.replace('www.', '');
+    } catch {
+      return url.replace(/^https?:\/\//, '').split('/')[0];
+    }
+  };
 
   const categories = [
     { key: 'Tümü', label: t.projects.all },
@@ -158,40 +181,93 @@ export default function Projects() {
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 60vw, 700px"
                       />
 
-                      {/* Overlay badge */}
-                      {project.isDemonstration && (
-                        <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-xs px-3 py-1 rounded-full text-[11px] font-mono tracking-wider text-slate-700 border border-slate-200/90 shadow-xs">
-                          {t.projects.demoBadge}
-                        </div>
-                      )}
+                      {/* Top Badges */}
+                      <div className="absolute top-4 left-4 right-4 flex items-center justify-between gap-2 z-20 pointer-events-none">
+                        {project.demoUrl ? (
+                          <div className="bg-emerald-600/95 text-white backdrop-blur-xs px-3 py-1 rounded-full text-[11px] font-mono font-bold flex items-center gap-1.5 shadow-md">
+                            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                            <span>Canlı Yayında</span>
+                          </div>
+                        ) : project.isDemonstration ? (
+                          <div className="bg-white/95 backdrop-blur-xs px-3 py-1 rounded-full text-[11px] font-mono tracking-wider text-slate-700 border border-slate-200/90 shadow-xs">
+                            {t.projects.demoBadge}
+                          </div>
+                        ) : null}
 
-                      {/* Interactive Zoom/Explore button (Always visible in corner on mobile, centered on hover on desktop) */}
-                      <button
-                        onClick={() => setSelectedProject(project)}
-                        className="absolute inset-0 flex items-end justify-end p-3 sm:p-0 sm:items-center sm:justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity bg-gradient-to-t from-slate-950/40 via-transparent to-transparent sm:bg-slate-950/30 sm:backdrop-blur-2xs cursor-pointer"
-                        aria-label={localizedTitle}
-                      >
-                        <motion.span
-                          whileHover={{ scale: 1.08 }}
-                          whileTap={{ scale: 0.95 }}
-                          className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-1.5 sm:px-5 sm:py-2.5 rounded-full text-[11px] sm:text-xs font-semibold text-slate-950 bg-white/95 backdrop-blur-md shadow-md"
+                        {project.isFeatured && (
+                          <div className="bg-amber-500 text-white backdrop-blur-xs px-2.5 py-1 rounded-full text-[10px] font-mono font-bold flex items-center gap-1 shadow-md">
+                            <Star className="w-3 h-3 fill-white" />
+                            <span>Seçilmiş Proje</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Interactive Hover / Tap Actions on Image */}
+                      {project.demoUrl ? (
+                        <a
+                          href={project.demoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="absolute inset-0 flex items-end justify-end p-3 sm:p-0 sm:items-center sm:justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity bg-gradient-to-t from-slate-950/60 via-transparent to-transparent sm:bg-slate-950/40 sm:backdrop-blur-2xs cursor-pointer z-10"
+                          aria-label={localizedTitle}
                         >
-                          <Eye className="w-3.5 h-3.5 text-blue-600 sm:text-slate-950" />
-                          {t.projects.inspect}
-                        </motion.span>
-                      </button>
+                          <motion.span
+                            whileHover={{ scale: 1.08 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-full text-xs font-bold text-slate-950 bg-white/95 backdrop-blur-md shadow-xl"
+                          >
+                            <Globe className="w-4 h-4 text-blue-600" />
+                            <span>{liveSiteLabel}</span>
+                            <ArrowUpRight className="w-4 h-4 text-slate-700" />
+                          </motion.span>
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => setSelectedProject(project)}
+                          className="absolute inset-0 flex items-end justify-end p-3 sm:p-0 sm:items-center sm:justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity bg-gradient-to-t from-slate-950/40 via-transparent to-transparent sm:bg-slate-950/30 sm:backdrop-blur-2xs cursor-pointer z-10"
+                          aria-label={localizedTitle}
+                        >
+                          <motion.span
+                            whileHover={{ scale: 1.08 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-1.5 sm:px-5 sm:py-2.5 rounded-full text-[11px] sm:text-xs font-semibold text-slate-950 bg-white/95 backdrop-blur-md shadow-md"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-blue-600 sm:text-slate-950" />
+                            {t.projects.inspect}
+                          </motion.span>
+                        </button>
+                      )}
                     </div>
                   </div>
 
                   {/* Content Side */}
                   <div className={`lg:col-span-5 flex flex-col justify-between ${isReversed ? 'lg:order-1' : 'lg:order-2'}`}>
                     <div>
-                      <span className="text-xs font-mono font-semibold uppercase tracking-wider text-blue-600 mb-2 block">
-                        {getCategoryLabel(project.category)}
-                      </span>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-mono font-semibold uppercase tracking-wider text-blue-600">
+                          {getCategoryLabel(project.category)}
+                        </span>
+                        {project.client && (
+                          <span className="text-xs font-mono text-slate-400">
+                            • {project.client}
+                          </span>
+                        )}
+                      </div>
 
                       <h3 className="text-2xl font-bold text-slate-950 mb-2">
-                        {localizedTitle}
+                        {project.demoUrl ? (
+                          <a
+                            href={project.demoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-blue-600 transition-colors inline-flex items-center gap-2 group/t"
+                          >
+                            <span>{localizedTitle}</span>
+                            <ArrowUpRight className="w-5 h-5 text-blue-600 opacity-60 group-hover/t:opacity-100 group-hover/t:translate-x-0.5 group-hover/t:-translate-y-0.5 transition-all" />
+                          </a>
+                        ) : (
+                          localizedTitle
+                        )}
                       </h3>
 
                       <p className="text-xs font-mono text-slate-500 mb-4">
@@ -217,16 +293,17 @@ export default function Projects() {
                     </div>
 
                     {/* Actions */}
-                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                    <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex flex-wrap items-center gap-3">
                         {project.demoUrl ? (
-                          <div className="flex flex-wrap items-center gap-2">
+                          <>
                             <a
                               href={project.demoUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 active:bg-blue-700 px-4 py-2 rounded-full transition-all shadow-sm group/link"
+                              className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 active:bg-blue-700 px-5 py-2.5 rounded-full transition-all shadow-md hover:shadow-blue-500/25 group/link"
                             >
+                              <Globe className="w-4 h-4 text-blue-100" />
                               <span>{liveSiteLabel}</span>
                               <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
                             </a>
@@ -234,11 +311,12 @@ export default function Projects() {
                               href={project.demoUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[11px] font-mono text-slate-500 hover:text-blue-600 transition-colors hidden sm:inline-block"
+                              className="text-xs font-mono text-slate-500 hover:text-blue-600 transition-colors inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 px-3 py-1.5 rounded-full"
                             >
-                              {project.demoUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                              <span>{cleanDomain(project.demoUrl)}</span>
+                              <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                             </a>
-                          </div>
+                          </>
                         ) : (
                           <button
                             onClick={() => setSelectedProject(project)}
@@ -250,7 +328,7 @@ export default function Projects() {
                         )}
                         <button
                           onClick={() => setSelectedProject(project)}
-                          className="text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                          className="text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors cursor-pointer px-2 py-1"
                         >
                           {t.projects.inspect}
                         </button>
@@ -351,10 +429,11 @@ export default function Projects() {
                       href={selectedProject.demoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-1.5 px-6 py-2.5 rounded-full text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-xs"
+                      className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold bg-blue-600 text-white hover:bg-blue-500 transition-all shadow-md group/mbtn"
                     >
-                      <span>{liveSiteLabel}</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
+                      <Globe className="w-4 h-4 text-blue-100" />
+                      <span>{liveSiteLabel} ({cleanDomain(selectedProject.demoUrl)})</span>
+                      <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover/mbtn:translate-x-0.5 group-hover/mbtn:-translate-y-0.5" />
                     </a>
                   )}
                   <Link

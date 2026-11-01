@@ -69,15 +69,6 @@ export const TRANSLATIONS = {
         },
       ],
     },
-    featuredProducts: {
-      badge: 'ÖNE ÇIKAN ÇALIŞMALAR & CANLI SİTELER',
-      title: 'Öne Çıkan Ürünler & Web Siteleri',
-      subtitle: 'Geliştirdiğim ve şu an aktif olarak yayında olan web siteleri ve dijital ürünleri doğrudan ziyaret edin.',
-      liveBadge: 'Canlı Yayında',
-      visitLive: 'Canlı Web Sitesini Ziyaret Et',
-      watchVideo: 'Tanıtım Videosunu İzle',
-      viewAllWorks: 'Tüm Çalışmaları İncele →',
-    },
     projects: {
       badge: 'PORTFOLYO',
       title: 'SEÇİLMİŞ PROJELER',
@@ -255,15 +246,6 @@ export const TRANSLATIONS = {
         },
       ],
     },
-    featuredProducts: {
-      badge: 'FEATURED WORKS & LIVE WEBSITES',
-      title: 'Featured Products & Live Websites',
-      subtitle: 'Experience live production websites and digital platforms built for forward-thinking brands.',
-      liveBadge: 'Live Production',
-      visitLive: 'Visit Live Website',
-      watchVideo: 'Watch Video Reel',
-      viewAllWorks: 'Explore All Works →',
-    },
     projects: {
       badge: 'PORTFOLIO',
       title: 'SELECTED PROJECTS',
@@ -440,15 +422,6 @@ export const TRANSLATIONS = {
           ],
         },
       ],
-    },
-    featuredProducts: {
-      badge: '주요 작업물 & 라이브 웹사이트',
-      title: '주요 제품 & 라이브 웹사이트',
-      subtitle: '실제 운영 중인 고성능 기업 웹사이트와 디지털 프로덕션을 직접 체험해 보세요.',
-      liveBadge: '실제 운영 중',
-      visitLive: '라이브 웹사이트 방문',
-      watchVideo: '영상 보기',
-      viewAllWorks: '전체 작업물 보기 →',
     },
     projects: {
       badge: '포트폴리오',

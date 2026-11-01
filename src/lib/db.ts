@@ -106,9 +106,9 @@ function seedIfEmpty(database: Database.Database) {
         const p = projects[i];
         insert.run({
           id: p.id,
-          title_tr: p.title,
-          title_en: p.title,
-          title_ko: p.title,
+          title_tr: p.titleI18n?.tr || p.title,
+          title_en: p.titleI18n?.en || p.title,
+          title_ko: p.titleI18n?.ko || p.title,
           desc_tr: p.description.tr,
           desc_en: p.description.en,
           desc_ko: p.description.ko,
@@ -146,6 +146,11 @@ export function mapRowToProject(row: any): ShowcaseProject {
   return {
     id: row.id,
     title: row.title_tr,
+    titleI18n: {
+      tr: row.title_tr,
+      en: row.title_en || row.title_tr,
+      ko: row.title_ko || row.title_tr,
+    },
     client: row.client,
     year: row.year,
     type: row.type as ShowcaseType,

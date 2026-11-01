@@ -31,9 +31,9 @@ export default function Projects({ onlyFeatured = false }: ProjectsProps) {
               id: dp.id,
               title: dp.title,
               titleI18n: {
-                tr: dp.title_tr || dp.title,
-                en: dp.title_en || dp.title,
-                ko: dp.title_ko || dp.title,
+                tr: dp.titleI18n?.tr || dp.title_tr || dp.title,
+                en: dp.titleI18n?.en || dp.title_en || dp.title,
+                ko: dp.titleI18n?.ko || dp.title_ko || dp.title,
               },
               category,
               isDemonstration: !dp.liveUrl,
@@ -186,7 +186,7 @@ export default function Projects({ onlyFeatured = false }: ProjectsProps) {
                         {project.demoUrl ? (
                           <div className="bg-emerald-600/95 text-white backdrop-blur-xs px-3 py-1 rounded-full text-[11px] font-mono font-bold flex items-center gap-1.5 shadow-md">
                             <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                            <span>Canlı Yayında</span>
+                            <span>{t.projects.liveBadge}</span>
                           </div>
                         ) : project.isDemonstration ? (
                           <div className="bg-white/95 backdrop-blur-xs px-3 py-1 rounded-full text-[11px] font-mono tracking-wider text-slate-700 border border-slate-200/90 shadow-xs">
@@ -197,7 +197,7 @@ export default function Projects({ onlyFeatured = false }: ProjectsProps) {
                         {project.isFeatured && (
                           <div className="bg-amber-500 text-white backdrop-blur-xs px-2.5 py-1 rounded-full text-[10px] font-mono font-bold flex items-center gap-1 shadow-md">
                             <Star className="w-3 h-3 fill-white" />
-                            <span>Seçilmiş Proje</span>
+                            <span>{t.projects.featuredBadge}</span>
                           </div>
                         )}
                       </div>
@@ -409,7 +409,7 @@ export default function Projects({ onlyFeatured = false }: ProjectsProps) {
 
                 <div className="mb-6">
                   <p className="text-xs font-mono uppercase tracking-wider text-slate-400 mb-2 font-semibold">
-                    {lang === 'ko' ? '사용 기술:' : lang === 'en' ? 'Technologies Used:' : 'Kullanılan Teknolojiler:'}
+                    {t.projects.techUsed}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedProject.techStack.map((tech) => (

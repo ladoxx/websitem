@@ -81,6 +81,10 @@ export const TRANSLATIONS = {
       viewAll: 'Tüm Projeleri ve Vaka Analizlerini Keşfedin',
       modalCta: 'Bu Proje Hakkında Teklif Al',
       close: 'Kapat',
+      liveBadge: 'Canlı Yayında',
+      featuredBadge: 'Seçilmiş Proje',
+      visitLive: 'Canlı Web Sitesini Aç',
+      techUsed: 'Kullanılan Teknolojiler:',
     },
     about: {
       badge: 'HAKKIMDA',
@@ -258,6 +262,10 @@ export const TRANSLATIONS = {
       viewAll: 'Discover All Projects & Case Studies',
       modalCta: 'Get Proposal for This Project',
       close: 'Close',
+      liveBadge: 'Live Production',
+      featuredBadge: 'Featured Project',
+      visitLive: 'Visit Live Website',
+      techUsed: 'Technologies Used:',
     },
     about: {
       badge: 'ABOUT',
@@ -435,6 +443,10 @@ export const TRANSLATIONS = {
       viewAll: '모든 프로젝트 및 케이스 스터디 살펴보기',
       modalCta: '이 프로젝트에 대한 제안 요청',
       close: '닫기',
+      liveBadge: '실제 운영 중',
+      featuredBadge: '주요 선정 프로젝트',
+      visitLive: '라이브 웹사이트 방문',
+      techUsed: '사용 기술:',
     },
     about: {
       badge: '소개',

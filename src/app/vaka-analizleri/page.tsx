@@ -110,6 +110,9 @@ export default function WebsitesAndVideosPage() {
   };
 
   const getLocalizedTitle = (item: ShowcaseProject) => {
+    if (item.titleI18n?.[lang]) {
+      return item.titleI18n[lang];
+    }
     const titleMap: Record<string, { en: string; ko: string }> = {
       'vanguard-ai-commercial': {
         en: 'Cinematic AI Brand Commercial Film',

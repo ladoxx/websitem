@@ -3,6 +3,11 @@ export type ShowcaseType = 'Video' | 'Web Sitesi' | 'SaaS Uygulaması';
 export interface ShowcaseProject {
   id: string;
   title: string;
+  titleI18n?: {
+    tr: string;
+    en: string;
+    ko: string;
+  };
   client: string;
   year: string;
   type: ShowcaseType;
@@ -31,6 +36,11 @@ export const SHOWCASE_PROJECTS: ShowcaseProject[] = [
   {
     id: 'vanguard-ai-commercial',
     title: 'Cinematic AI Marka Reklam Filmi',
+    titleI18n: {
+      tr: 'Cinematic AI Marka Reklam Filmi',
+      en: 'Cinematic AI Brand Commercial Film',
+      ko: '시네마틱 AI 브랜드 광고 필름',
+    },
     client: 'Vanguard Automotive',
     year: '2026',
     type: 'Video',
@@ -56,6 +66,11 @@ export const SHOWCASE_PROJECTS: ShowcaseProject[] = [
   {
     id: 'cyberpulse-product-video',
     title: 'Dynamic Tech Ürün Tanıtım & 3D Motion Reklamı',
+    titleI18n: {
+      tr: 'Dynamic Tech Ürün Tanıtım & 3D Motion Reklamı',
+      en: 'Dynamic Tech Product Launch & 3D Motion Ad',
+      ko: '다이내믹 테크 제품 런칭 & 3D 모션 광고',
+    },
     client: 'CyberPulse Audio',
     year: '2025',
     type: 'Video',
@@ -81,6 +96,11 @@ export const SHOWCASE_PROJECTS: ShowcaseProject[] = [
   {
     id: 'nexus-global-holding-web',
     title: 'Global Yatırım & Holding Kurumsal Web Sitesi',
+    titleI18n: {
+      tr: 'Global Yatırım & Holding Kurumsal Web Sitesi',
+      en: 'Global Investment & Holding Corporate Website',
+      ko: '글로벌 투자 & 지주사 기업 웹사이트',
+    },
     client: 'Nexus Global Ventures',
     year: '2026',
     type: 'Web Sitesi',
@@ -106,6 +126,11 @@ export const SHOWCASE_PROJECTS: ShowcaseProject[] = [
   {
     id: 'atelier-lux-ecommerce-web',
     title: 'Lüks & Minimalist E-Ticaret Deneyimi',
+    titleI18n: {
+      tr: 'Lüks & Minimalist E-Ticaret Deneyimi',
+      en: 'Luxury & Minimalist E-Commerce Experience',
+      ko: '럭셔리 & 미니멀리스트 이커머스 플랫폼',
+    },
     client: 'Atelier Minimalist',
     year: '2026',
     type: 'Web Sitesi',
@@ -131,6 +156,11 @@ export const SHOWCASE_PROJECTS: ShowcaseProject[] = [
   {
     id: 'aurora-ai-saas-platform',
     title: 'Aurora AI — Video Engine & GPU Yönetim SaaS Platformu',
+    titleI18n: {
+      tr: 'Aurora AI — Video Engine & GPU Yönetim SaaS Platformu',
+      en: 'Aurora AI — Video Engine & GPU Management SaaS',
+      ko: 'Aurora AI — 비디오 엔진 & GPU 관리 SaaS 플랫폼',
+    },
     client: 'Aurora AI Cloud',
     year: '2026',
     type: 'SaaS Uygulaması',
